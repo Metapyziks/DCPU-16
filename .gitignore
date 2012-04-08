@@ -1,6 +1,7 @@
 DCPU-16.sln.docstates.suo
 DCPU-16.suo
-Emulator/obj
-Emulator/bin
-DCPU-16/obj
-DCPU-16/bin
+dcpu16/obj
+emu/obj
+asm/obj
+bin
+testasm/*.dcpu16

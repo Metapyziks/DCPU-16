@@ -60,21 +60,21 @@ namespace DCPU16.Emulator
                 {
                     switch ( arg.ToLower() )
                     {
-                        case "rows":
+                        case "-rows":
                             if ( !int.TryParse( args[ ++i ], out stScreenRows ) )
                             {
                                 Console.WriteLine( "Invalid value for argument \"" + arg + "\"" );
                                 return false;
                             }
                             break;
-                        case "cols":
+                        case "-cols":
                             if ( !int.TryParse( args[ ++i ], out stScreenCols ) )
                             {
                                 Console.WriteLine( "Invalid value for argument \"" + arg + "\"" );
                                 return false;
                             }
                             break;
-                        case "ram":
+                        case "-ram":
                             if ( !int.TryParse( args[ ++i ], out stRamSizeWords ) )
                             {
                                 Console.WriteLine( "Invalid value for argument \"" + arg + "\"" );
@@ -86,7 +86,7 @@ namespace DCPU16.Emulator
                             return false;
                     }
                 }
-                else
+                else if( stCodePath == null )
                 {
                     stCodePath = arg;
                 }

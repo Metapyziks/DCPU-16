@@ -12,19 +12,16 @@ namespace DCPU16
         I = 0x6, J = 0x7
     }
 
-    public enum BasicOpcode : byte
+    public enum Opcode : byte
     {
         Set = 0x1, 
         Add = 0x2, Sub = 0x3, Mul = 0x4, Div = 0x5,
         Mod = 0x6,
         ShL = 0x7, ShR = 0x8,
         And = 0x9, BOr = 0xa, XOr = 0xb,
-        IfE = 0xc, IfN = 0xd, IfG = 0xe, IfB = 0xf
-    }
+        IfE = 0xc, IfN = 0xd, IfG = 0xe, IfB = 0xf,
 
-    public enum NonBasicOpcode : byte
-    {
-        Jsr = 0x01
+        Jsr = 0x10
     }
 
     public class DCPU16
@@ -73,7 +70,7 @@ namespace DCPU16
                 int s = i % 2;
 
                 if ( s == 0 )
-                    myMemory[ j ] = (ushort) ( program[ i ] << 0x10 );
+                    myMemory[ j ] = (ushort) ( program[ i ] << 0x8 );
                 else
                     myMemory[ j ] |= program[ i ];
             }
@@ -156,7 +153,7 @@ namespace DCPU16
         public int Step()
         {
             bool skip = mySkip;
-            ushort word = myMemory[ myCurPC = myPC++ ];
+            ushort word = myMemory[ myCurPC = (ushort) ( myPC++ & ( RamSizeWords - 1 ) ) ];
 
             if ( word == 0x0000 )
             {
@@ -175,9 +172,9 @@ namespace DCPU16
                 ushort valA;
                 opcode = a;
                 a = b;
-                switch( (NonBasicOpcode) opcode )
+                switch( (Opcode) ( opcode << 0x4 ) )
                 {
-                    case NonBasicOpcode.Jsr:
+                    case Opcode.Jsr:
                         valA = LoadValue( a, ref cycles );
                         Push( (ushort) myPC );
                         cycles += 2;
@@ -191,9 +188,9 @@ namespace DCPU16
             {
                 ushort valA, valB, oldPC;
                 long val;
-                switch ( (BasicOpcode) opcode )
+                switch ( (Opcode) opcode )
                 {
-                    case BasicOpcode.Set:
+                    case Opcode.Set:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         oldPC = myPC;
@@ -203,7 +200,7 @@ namespace DCPU16
                             myPC = oldPC;
                         cycles += 1;
                         break;
-                    case BasicOpcode.Add:
+                    case Opcode.Add:
                         val = LoadValue( a, ref cycles ) + LoadValue( b, ref cycles );
                         Overflow = (ushort) ( val > 0xffff ? 0x0001 : 0x0000 );
                         oldPC = myPC;
@@ -213,7 +210,7 @@ namespace DCPU16
                             myPC = oldPC;
                         cycles += 2;
                         break;
-                    case BasicOpcode.Sub:
+                    case Opcode.Sub:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         if ( valA >= valB )
@@ -233,7 +230,7 @@ namespace DCPU16
                             myPC = oldPC;
                         cycles += 2;
                         break;
-                    case BasicOpcode.Mul:
+                    case Opcode.Mul:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         val = a * b;
@@ -245,7 +242,7 @@ namespace DCPU16
                             myPC = oldPC;
                         cycles += 2;
                         break;
-                    case BasicOpcode.Div:
+                    case Opcode.Div:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         if ( valB == 0 )
@@ -265,7 +262,7 @@ namespace DCPU16
                             myPC = oldPC;
                         cycles += 3;
                         break;
-                    case BasicOpcode.Mod:
+                    case Opcode.Mod:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         if ( valB == 0 )
@@ -279,7 +276,7 @@ namespace DCPU16
                             myPC = oldPC;
                         cycles += 3;
                         break;
-                    case BasicOpcode.ShL:
+                    case Opcode.ShL:
                         valA = LoadValue( a, ref cycles );
                         valB = (ushort) ( LoadValue( b, ref cycles ) & 0x1f );
                         val = valA << valB;
@@ -291,7 +288,7 @@ namespace DCPU16
                             myPC = oldPC;
                         cycles += 2;
                         break;
-                    case BasicOpcode.ShR:
+                    case Opcode.ShR:
                         valA = LoadValue( a, ref cycles );
                         valB = (ushort) ( LoadValue( b, ref cycles ) & 0x1f );
                         val = ( valA << 0x10 ) >> valB;
@@ -303,7 +300,7 @@ namespace DCPU16
                             myPC = oldPC;
                         cycles += 2;
                         break;
-                    case BasicOpcode.And:
+                    case Opcode.And:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         oldPC = myPC;
@@ -313,7 +310,7 @@ namespace DCPU16
                             myPC = oldPC;
                         cycles += 1;
                         break;
-                    case BasicOpcode.BOr:
+                    case Opcode.BOr:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         oldPC = myPC;
@@ -323,7 +320,7 @@ namespace DCPU16
                             myPC = oldPC;
                         cycles += 1;
                         break;
-                    case BasicOpcode.XOr:
+                    case Opcode.XOr:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         oldPC = myPC;
@@ -333,25 +330,25 @@ namespace DCPU16
                             myPC = oldPC;
                         cycles += 1;
                         break;
-                    case BasicOpcode.IfE:
+                    case Opcode.IfE:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         InstructionSkip = valA != valB;
                         cycles += 2;
                         break;
-                    case BasicOpcode.IfN:
+                    case Opcode.IfN:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         InstructionSkip = valA == valB;
                         cycles += 2;
                         break;
-                    case BasicOpcode.IfG:
+                    case Opcode.IfG:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         InstructionSkip = valA <= valB;
                         cycles += 2;
                         break;
-                    case BasicOpcode.IfB:
+                    case Opcode.IfB:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         InstructionSkip = ( valA & valB ) == 0;
@@ -390,7 +387,7 @@ namespace DCPU16
 
                 if ( identifier >= 0x10 )
                 {
-                    value += myMemory[ myPC++ ];
+                    value += myMemory[ myPC++ & ( RamSizeWords - 1 ) ];
                     ++cycles;
                 }
             }
@@ -424,7 +421,7 @@ namespace DCPU16
                         break;
                     case 0x1e:
                     case 0x1f:
-                        value = myMemory[ myPC++ ];
+                        value = myMemory[ myPC++ & ( RamSizeWords - 1 ) ];
                         reference = identifier == 0x1e;
                         ++cycles;
                         break;
@@ -436,7 +433,7 @@ namespace DCPU16
             }
 
             if ( reference )
-                value = myMemory[ value ];
+                value = myMemory[ value & ( RamSizeWords - 1 ) ];
 
             return value;
         }
@@ -457,10 +454,10 @@ namespace DCPU16
                 if ( identifier < 0x08 )
                     SetRegister( register, value );
                 else if ( identifier < 0x10 )
-                    myMemory[ GetRegister( register ) ] = value;
+                    myMemory[ GetRegister( register ) & ( RamSizeWords - 1 ) ] = value;
                 else
                 {
-                    myMemory[ GetRegister( register ) + myMemory[ myPC++ ] ] = value;
+                    myMemory[ ( GetRegister( register ) + myMemory[ myPC++ ] ) & ( RamSizeWords - 1 ) ] = value;
                     ++cycles;
                 }
             }
@@ -469,13 +466,13 @@ namespace DCPU16
                 switch ( identifier )
                 {
                     case 0x18:
-                        myMemory[ mySP++ ] = value;
+                        myMemory[ mySP++ & ( RamSizeWords - 1 ) ] = value;
                         break;
                     case 0x19:
-                        myMemory[ mySP ] = value;
+                        myMemory[ mySP & ( RamSizeWords - 1 ) ] = value;
                         break;
                     case 0x1a:
-                        myMemory[ --mySP ] = value;
+                        myMemory[ --mySP & ( RamSizeWords - 1 ) ] = value;
                         break;
                     case 0x1b:
                         mySP = value;
@@ -487,7 +484,7 @@ namespace DCPU16
                         myOverflow = value;
                         break;
                     case 0x1e:
-                        myMemory[ myMemory[ myPC++ ] ] = value;
+                        myMemory[ myMemory[ myPC++ & ( RamSizeWords - 1 ) ] & ( RamSizeWords - 1 ) ] = value;
                         ++cycles;
                         break;
                     case 0x1f:
