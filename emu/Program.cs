@@ -22,7 +22,7 @@ namespace DCPU16.Emulator
         private static int stRamSizeWords = 0x10000;
         private static string stCodePath;
 
-        private static DCPU16 myCPU;
+        private static DCPU16Emulator myCPU;
 
         static void Main( string[] args )
         {
@@ -40,7 +40,7 @@ namespace DCPU16.Emulator
             Console.BufferWidth = stScreenCols;
             Console.BufferHeight = stScreenRows;
 
-            myCPU = new DCPU16( stRamSizeWords );
+            myCPU = new DCPU16Emulator( stRamSizeWords );
 
             if ( stCodePath == null )
                 myCPU.LoadProgram( stDefaultProgram );

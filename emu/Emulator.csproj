@@ -47,7 +47,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DCPU-16\DCPU-16.csproj">
+    <ProjectReference Include="..\dcpu16\DCPU-16.csproj">
       <Project>{D867825B-4C6E-4231-8D46-3FB1894D9F89}</Project>
       <Name>DCPU-16</Name>
     </ProjectReference>

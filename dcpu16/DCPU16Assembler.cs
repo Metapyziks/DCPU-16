@@ -184,10 +184,22 @@ namespace DCPU16
             public readonly String Label;
             public ushort Literal;
 
+            public LiteralVal( char ch )
+                : base( false )
+            {
+                Literal = (ushort) ch;
+                Extended = true;
+            }
+
             public LiteralVal( String str, bool reference )
                 : base( reference )
             {
-                if ( char.IsNumber( str[ 0 ] ) )
+                if ( str[ 0 ] == '\'' )
+                {
+                    Literal = (ushort) str[ 1 ];
+                    Extended = Literal >= 0x20;
+                }
+                else if ( char.IsNumber( str[ 0 ] ) )
                 {
                     Literal = ParseNumber( str );
                     Extended = Literal >= 0x20;
@@ -211,15 +223,12 @@ namespace DCPU16
                     Extended = true;
                 }
 
+                NextWord = Literal;
+
                 if ( Extended )
-                {
                     Assembled = (ushort) ( 0x1e | ( Reference ? 0x0 : 0x1 ) );
-                    NextWord = Literal;
-                }
                 else
-                {
                     Assembled = (ushort) ( Literal | ( Reference ? 0x28 : 0x20 ) );
-                }
 
                 SetDisassembled( "0x" + Literal.ToString( "X" ) );
             }
@@ -229,8 +238,7 @@ namespace DCPU16
         {
             public readonly Opcode Opcode;
 
-            public readonly Value ValueA;
-            public readonly Value ValueB;
+            public readonly Value[] Values;
 
             public int Length { get; private set; }
             public ushort[] Assembled { get; private set; }
@@ -244,64 +252,74 @@ namespace DCPU16
             public Instruction( Opcode opcode, Value value )
                 : this( opcode )
             {
-                ValueA = value;
+                Values = new Value[] { value };
 
-                Length = 1 + ( ValueA.Extended ? 1 : 0 );
+                Length = 1 + ( Values[ 0 ].Extended ? 1 : 0 );
             }
 
             public Instruction( Opcode opcode, Value valueA, Value valueB )
                 : this( opcode )
             {
-                ValueA = valueA;
-                ValueB = valueB;
+                Values = new Value[] { valueA, valueB };
 
-                Length = 1 + ( ValueA.Extended ? 1 : 0 ) + ( ValueB.Extended ? 1 : 0 );
-                Assembled = new ushort[ Length ];
-                Assembled[ 0 ] = (ushort) ( (ushort) Opcode | ( ValueA.Assembled << 0x4 ) | ( ValueB.Assembled << 0xa ) );
-                if ( ValueA.Extended )
-                {
-                    Assembled[ 1 ] = ValueA.NextWord;
-                    if ( ValueB.Extended )
-                        Assembled[ 2 ] = ValueB.NextWord;
-                }
-                else if ( ValueB.Extended )
-                    Assembled[ 1 ] = ValueB.NextWord;
-                Disassembled = Opcode.ToString().ToUpper() + " " + ValueA.ToString() + ", " + ValueB.ToString();
+                Length = 1 + ( Values[ 0 ].Extended ? 1 : 0 ) + ( Values[ 1 ].Extended ? 1 : 0 );
+            }
+
+            public Instruction( LiteralVal[] values )
+                : this( Opcode.Dat )
+            {
+                Values = values;
+                Length = values.Length;
             }
 
             public void ResolveLabels( Dictionary<String, ushort> labels )
             {
                 Assembled = new ushort[ Length ];
 
-                if ( ValueA != null )
+                if ( Opcode != Opcode.Dat )
                 {
-                    ValueA.ResolveLabel( labels );
-
-                    if ( ValueB != null )
+                    if ( Values.Length > 0 )
                     {
-                        ValueB.ResolveLabel( labels );
+                        Values[ 0 ].ResolveLabel( labels );
 
-                        Assembled[ 0 ] = (ushort) ( (ushort) Opcode | ( ValueA.Assembled << 0x4 ) | ( ValueB.Assembled << 0xa ) );
-                       
-                        if ( ValueA.Extended )
+                        if ( Values.Length > 1 )
                         {
-                            Assembled[ 1 ] = ValueA.NextWord;
-                            if ( ValueB.Extended )
-                                Assembled[ 2 ] = ValueB.NextWord;
+                            Values[ 1 ].ResolveLabel( labels );
+
+                            Assembled[ 0 ] = (ushort) ( (ushort) Opcode | ( Values[ 0 ].Assembled << 0x4 ) | ( Values[ 1 ].Assembled << 0xa ) );
+
+                            if ( Values[ 0 ].Extended )
+                            {
+                                Assembled[ 1 ] = Values[ 0 ].NextWord;
+                                if ( Values[ 1 ].Extended )
+                                    Assembled[ 2 ] = Values[ 1 ].NextWord;
+                            }
+                            else if ( Values[ 1 ].Extended )
+                                Assembled[ 1 ] = Values[ 1 ].NextWord;
+
+                            Disassembled = Opcode.ToString().ToUpper() + " " + Values[ 0 ].ToString() + ", " + Values[ 1 ].ToString();
                         }
-                        else if ( ValueB.Extended )
-                            Assembled[ 1 ] = ValueB.NextWord;
+                        else
+                        {
+                            Assembled[ 0 ] = (ushort) ( (ushort) Opcode | ( Values[ 0 ].Assembled << 0xa ) );
 
-                        Disassembled = Opcode.ToString().ToUpper() + " " + ValueA.ToString() + ", " + ValueB.ToString();
+                            if ( Values[ 0 ].Extended )
+                                Assembled[ 1 ] = Values[ 0 ].NextWord;
+
+                            Disassembled = Opcode.ToString().ToUpper() + " " + Values[ 0 ].ToString();
+                        }
                     }
-                    else
+                }
+                else
+                {
+                    Disassembled = Opcode.ToString().ToUpper() + " ";
+
+                    for ( int i = 0; i < Values.Length; ++i )
                     {
-                        Assembled[ 0 ] = (ushort) ( (ushort) Opcode | ( ValueA.Assembled << 0xa ) );
-
-                        if ( ValueA.Extended )
-                            Assembled[ 1 ] = ValueA.NextWord;
-
-                        Disassembled = Opcode.ToString().ToUpper() + " " + ValueA.ToString();
+                        Assembled[ i ] = Values[ i ].NextWord;
+                        Disassembled += Values[ i ].Disassembled;
+                        if ( i < Values.Length - 1 )
+                            Disassembled += ", ";
                     }
                 }
             }
@@ -333,35 +351,69 @@ namespace DCPU16
 
         private static Instruction ReadInstruction( String str, ref int offset, ushort words, Dictionary<String, ushort> labels )
         {
-            SkipWhitespace( str, ref offset );
+            String opString = null;
 
-            while ( offset < str.Length - 2 && str[ offset ] == ':' )
-            {
-                String label = "";
-                while ( char.IsLetterOrDigit( str[ ++offset ] ) || str[ offset ] == '_' )
-                    label += str[ offset ];
-
-                labels.Add( label, words );
-                SkipWhitespace( str, ref offset );
-            }
-
-            if ( offset >= str.Length - 3 )
-                return null;
-
-            Opcode opcode = ReadOperator( str, ref offset );
-            SkipWhitespace( str, ref offset );
-            Value valA = ReadValue( str, ref offset );
-            if ( valA == null )
-                return null;
-            if ( (int) opcode < 0x10 )
+            while ( opString == null )
             {
                 SkipWhitespace( str, ref offset );
-                Value valB = ReadValue( str, ref offset );
-                if ( valB == null )
+
+                while ( offset < str.Length - 2 && str[ offset ] == ':' )
+                {
+                    String label = "";
+                    while ( char.IsLetterOrDigit( str[ ++offset ] ) || str[ offset ] == '_' )
+                        label += str[ offset ];
+
+                    labels.Add( label, words );
+                    SkipWhitespace( str, ref offset );
+                }
+
+                opString = "";
+
+                while ( offset < str.Length && ( char.IsLetterOrDigit( str[ offset ] ) || str[ offset ] == '_' ) )
+                    opString += str[ offset++ ];
+
+                if ( offset >= str.Length )
                     return null;
-                return new Instruction( opcode, valA, valB );
+
+                if ( str[ offset ] == ':' )
+                {
+                    ++offset;
+                    labels.Add( opString, words );
+                    opString = null;
+                }
             }
-            return new Instruction( opcode, valA );
+
+            Opcode opcode = ParseOperator( opString );
+
+            if ( opcode == Opcode.Dat )
+            {
+                List<LiteralVal> vals = new List<LiteralVal>();
+                do
+                {
+                    SkipWhitespace( str, ref offset );
+                    vals.Add( (LiteralVal) ReadValue( str, ref offset ) );
+                }
+                while ( offset < str.Length && str[ offset ] == ',' && ++offset < str.Length );
+
+                return new Instruction( vals.ToArray() );
+            }
+            else
+            {
+                SkipWhitespace( str, ref offset );
+                Value valA = ReadValue( str, ref offset );
+                if ( valA == null )
+                    return null;
+                if ( (int) opcode < 0x10 )
+                {
+                    ++offset;
+                    SkipWhitespace( str, ref offset );
+                    Value valB = ReadValue( str, ref offset );
+                    if ( valB == null )
+                        return null;
+                    return new Instruction( opcode, valA, valB );
+                }
+                return new Instruction( opcode, valA );
+            }
         }
 
         private static void SkipWhitespace( String str, ref int offset )
@@ -381,14 +433,14 @@ namespace DCPU16
             while ( ( comment || char.IsWhiteSpace( str[ offset ] ) ) && ( ++offset < str.Length ) );
         }
 
-        private static Opcode ReadOperator( String str, ref int offset )
+        private static Opcode ParseOperator( String str )
         {
-            String opstr = str.Substring( offset, 3 ).ToUpper();
-            offset += 3;
-            SkipWhitespace( str, ref offset );
+            String opstr = str.ToUpper();
 
             switch ( opstr )
             {
+                case "DAT":
+                    return Opcode.Dat;
                 case "SET":
                     return Opcode.Set;
                 case "ADD":
@@ -432,23 +484,49 @@ namespace DCPU16
                 return null;
 
             bool reference;
+            bool ischar = false;
+            bool escaped = false;
             String val = "";
 
-            if ( str[ offset ] == '[' )
+            reference = str[ offset ] == '[' && ( ++offset < str.Length );
+            while ( offset < str.Length && ( ischar || ( !char.IsWhiteSpace( str[ offset ] ) && str[ offset ] != ',' && str[ offset ] != ']' ) ) )
             {
-                reference = true;
-                while ( ++offset < str.Length && str[ offset ] != ']' )
-                    val += str[ offset ];
-                ++offset;
-            }
-            else
-            {
-                reference = false;
-                while ( offset < str.Length && !char.IsWhiteSpace( str[ offset ] ) && str[ offset ] != ',' )
-                    val += str[ offset++ ];
+                if ( ischar )
+                {
+                    if ( escaped )
+                    {
+                        switch( str[ offset ] )
+                        {
+                            case '\r':
+                                val += "\r"; break;
+                            case '\\':
+                                val += "\\"; break;
+                            case '\n':
+                                val += "\n"; break;
+                            case '\t':
+                                val += "\t"; break;
+                            default:
+                                val += str[ offset ]; break;
+                        }
+                        escaped = false;
+                        ++offset;
+                        continue;
+                    }
+                    else if ( str[ offset ] == '\\' )
+                    {
+                        escaped = true;
+                        ++offset;
+                        continue;
+                    }
+                    else if ( str[ offset ] == '\'' )
+                        ischar = false;
+                }
+                else if ( str[ offset ] == '\'' )
+                    ischar = true;
+                val += str[ offset++ ];
             }
 
-            if ( str[ offset ] == ',' )
+            if ( str[ offset ] == ']' )
                 ++offset;
 
             val = val.Trim();

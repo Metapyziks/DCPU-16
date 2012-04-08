@@ -14,6 +14,7 @@ namespace DCPU16
 
     public enum Opcode : byte
     {
+        Dat = 0x0,
         Set = 0x1, 
         Add = 0x2, Sub = 0x3, Mul = 0x4, Div = 0x5,
         Mod = 0x6,
@@ -24,7 +25,7 @@ namespace DCPU16
         Jsr = 0x10
     }
 
-    public class DCPU16
+    public class DCPU16Emulator
     {
         public int RamSizeWords { get; private set; }
 
@@ -37,7 +38,7 @@ namespace DCPU16
         private bool mySkip;
         private ushort myCurPC;
 
-        public DCPU16( int ramSizeWords = 0x10000 )
+        public DCPU16Emulator( int ramSizeWords = 0x10000 )
         {
             RamSizeWords = ramSizeWords;
 
