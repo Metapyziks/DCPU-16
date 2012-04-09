@@ -2,7 +2,7 @@
 			; By Metapyziks
 
 			set x, 0
-:xloop			
+:xloop
 			set y, 0
 :yloop
 			set c, x
@@ -11,19 +11,25 @@
 			shl a, 0x4
 			add a, y
 			shl a, 0x8
-			add a, 'X'
+			set c, x
+			and c, 0x1
+			add a, [chars+c]
 			
 			set b, y
-			mul b, 0x20
+			mul b, [width]
 			add b, x
 			set [0x8000+b], a
 			
 			add y, 1
-			ifn y, 0x10
+			ifn y, [height]
 				set PC, yloop
 				
 			add x, 1
-			ifn x, 0x20
+			ifn x, [width]
 				set PC, xloop
-:end				
+:end
 			set PC, end
+
+:chars		dat 0x01, 0x02
+:width		dat 0x20
+:height		dat 0x10

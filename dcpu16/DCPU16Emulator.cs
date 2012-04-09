@@ -231,148 +231,127 @@ namespace DCPU16
             }
             else
             {
-                ushort valA, valB, oldPC;
+                ushort valA, valB;
                 long val;
                 switch ( (Opcode) opcode )
                 {
                     case Opcode.Set:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
-                        oldPC = myPC;
-                        myPC = (ushort) ( myCurPC + 1 );
-                        StoreValue( a, valB, ref cycles );
-                        if ( skip || a != 0x1c )
-                            myPC = oldPC;
+                        if( !skip )
+                            StoreValue( a, valB, ref cycles );
                         cycles += 1;
                         break;
                     case Opcode.Add:
                         val = LoadValue( a, ref cycles ) + LoadValue( b, ref cycles );
                         Overflow = (ushort) ( val > 0xffff ? 0x0001 : 0x0000 );
-                        oldPC = myPC;
-                        myPC = (ushort) ( myCurPC + 1 );
-                        StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
-                        if ( skip || a != 0x1c )
-                            myPC = oldPC;
+                        if ( !skip )
+                            StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
                         cycles += 2;
                         break;
                     case Opcode.Sub:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
-                        if ( valA >= valB )
+                        if ( !skip )
                         {
-                            val = valA - valB;
-                            Overflow = 0x0000;
+                            if ( valA >= valB )
+                            {
+                                val = valA - valB;
+                                Overflow = 0x0000;
+                            }
+                            else
+                            {
+                                val = 0x10000 + ( valA - valB );
+                                Overflow = 0xffff;
+                            }
+                            StoreValue( a, (ushort) val, ref cycles );
                         }
-                        else
-                        {
-                            val = 0x10000 + ( valA - valB );
-                            Overflow = 0xffff;
-                        }
-                        oldPC = myPC;
-                        myPC = (ushort) ( myCurPC + 1 );
-                        StoreValue( a, (ushort) val, ref cycles );
-                        if ( skip || a != 0x1c )
-                            myPC = oldPC;
                         cycles += 2;
                         break;
                     case Opcode.Mul:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
-                        val = valA * valB;
-                        Overflow = (ushort) ( ( val >> 0x10 ) & 0xffff );
-                        oldPC = myPC;
-                        myPC = (ushort) ( myCurPC + 1 );
-                        StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
-                        if ( skip || a != 0x1c )
-                            myPC = oldPC;
+                        if ( !skip )
+                        {
+                            val = valA * valB;
+                            Overflow = (ushort) ( ( val >> 0x10 ) & 0xffff );
+                            StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
+                        }
                         cycles += 2;
                         break;
                     case Opcode.Div:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
-                        if ( valB == 0 )
+                        if ( !skip )
                         {
-                            val = 0;
-                            Overflow = 0x0000;
+                            if ( valB == 0 )
+                            {
+                                val = 0;
+                                Overflow = 0x0000;
+                            }
+                            else
+                            {
+                                val = valA / valB;
+                                Overflow = (ushort) ( ( ( valA << 0x10 ) / valB ) & 0xffff );
+                            }
+                            StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
                         }
-                        else
-                        {
-                            val = valA / valB;
-                            Overflow = (ushort) ( ( ( valA << 0x10 ) / valB ) & 0xffff );
-                        }
-                        oldPC = myPC;
-                        myPC = (ushort) ( myCurPC + 1 );
-                        StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
-                        if ( skip || a != 0x1c )
-                            myPC = oldPC;
                         cycles += 3;
                         break;
                     case Opcode.Mod:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
-                        if ( valB == 0 )
-                            val = 0;
-                        else
-                            val = valA % valB;
-                        oldPC = myPC;
-                        myPC = (ushort) ( myCurPC + 1 );
-                        StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
-                        if ( skip || a != 0x1c )
-                            myPC = oldPC;
+                        if ( !skip )
+                        {
+                            if ( valB == 0 )
+                                val = 0;
+                            else
+                                val = valA % valB;
+                            StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
+                        }
                         cycles += 3;
                         break;
                     case Opcode.ShL:
                         valA = LoadValue( a, ref cycles );
                         valB = (ushort) ( LoadValue( b, ref cycles ) & 0x1f );
-                        val = valA << valB;
-                        Overflow = (ushort) ( ( val >> 0x10 ) & 0xffff );
-                        oldPC = myPC;
-                        myPC = (ushort) ( myCurPC + 1 );
-                        StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
-                        if ( skip || a != 0x1c )
-                            myPC = oldPC;
+                        if ( !skip )
+                        {
+                            val = valA << valB;
+                            Overflow = (ushort) ( ( val >> 0x10 ) & 0xffff );
+                            StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
+                        }
                         cycles += 2;
                         break;
                     case Opcode.ShR:
                         valA = LoadValue( a, ref cycles );
                         valB = (ushort) ( LoadValue( b, ref cycles ) & 0x1f );
-                        val = ( valA << 0x10 ) >> valB;
-                        Overflow = (ushort) ( val & 0xffff );
-                        oldPC = myPC;
-                        myPC = (ushort) ( myCurPC + 1 );
-                        StoreValue( a, (ushort) ( ( val >> 0x10 ) & 0xffff ), ref cycles );
-                        if ( skip || a != 0x1c )
-                            myPC = oldPC;
+                        if ( !skip )
+                        {
+                            val = ( valA << 0x10 ) >> valB;
+                            Overflow = (ushort) ( val & 0xffff );
+                            StoreValue( a, (ushort) ( ( val >> 0x10 ) & 0xffff ), ref cycles );
+                        }
                         cycles += 2;
                         break;
                     case Opcode.And:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
-                        oldPC = myPC;
-                        myPC = (ushort) ( myCurPC + 1 );
-                        StoreValue( a, (ushort) ( valA & valB ), ref cycles );
-                        if ( skip || a != 0x1c )
-                            myPC = oldPC;
+                        if ( !skip )
+                            StoreValue( a, (ushort) ( valA & valB ), ref cycles );
                         cycles += 1;
                         break;
                     case Opcode.BOr:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
-                        oldPC = myPC;
-                        myPC = (ushort) ( myCurPC + 1 );
-                        StoreValue( a, (ushort) ( valA | valB ), ref cycles );
-                        if ( skip || a != 0x1c )
-                            myPC = oldPC;
+                        if ( !skip )
+                            StoreValue( a, (ushort) ( valA | valB ), ref cycles );
                         cycles += 1;
                         break;
                     case Opcode.XOr:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
-                        oldPC = myPC;
-                        myPC = (ushort) ( myCurPC + 1 );
-                        StoreValue( a, (ushort) ( valA ^ valB ), ref cycles );
-                        if ( skip || a != 0x1c )
-                            myPC = oldPC;
+                        if ( !skip )
+                            StoreValue( a, (ushort) ( valA ^ valB ), ref cycles );
                         cycles += 1;
                         break;
                     case Opcode.IfE:
@@ -449,7 +428,7 @@ namespace DCPU16
                         reference = true;
                         break;
                     case 0x1a:
-                        value = --mySP;
+                        value = (ushort) ( mySP - 1 );
                         reference = true;
                         break;
                     case 0x1b:
@@ -485,12 +464,8 @@ namespace DCPU16
 
         private void StoreValue( int identifier, ushort value, ref int cycles )
         {
-            if ( mySkip )
-            {
-                if ( ( identifier >= 0x10 && identifier < 0x18 ) || ( identifier >= 0x1e && identifier < 0x20 ) )
-                    ++myPC;
-                return;
-            }
+            ushort oldPC = myPC;
+            myPC = (ushort) ( myCurPC + 1 );
 
             if ( identifier < 0x18 )
             {
@@ -540,6 +515,9 @@ namespace DCPU16
                         break;
                 }
             }
+
+            if ( identifier != 0x1c )
+                myPC = oldPC;
         }
     }
 }

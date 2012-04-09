@@ -9,38 +9,40 @@ namespace DCPU16.Assembler
     class Program
     {
         private static readonly String stDefaultProgram = @"
-            ; Rainbow display test
+			; Rainbow display test
 			; By Metapyziks
 
-:start	
 			set x, 0
-:xloop			
+:xloop
 			set y, 0
 :yloop
-			set a, x
-			shl a, 0xc
-			add a, 'A'
+			set c, x
+			div c, 2
+			set a, c
+			shl a, 0x4
 			add a, y
+			shl a, 0x8
+			add a, [char]
 			
 			set b, y
-			mul b, width
+			mul b, [width]
 			add b, x
-			set [display+b], a
+			set [0x8000+b], a
 			
 			add y, 1
-			ifg height, y
+			ifn y, [height]
 				set PC, yloop
 				
 			add x, 1
-			ifg width, x
+			ifn x, [width]
 				set PC, xloop
-				
-			set PC, start
-			
-:display	dat 0x8000
+:end
+			set PC, end
+
+:char		dat 'X'
 :width		dat 0x20
 :height		dat 0x10";
-
+        
         private static string[] stInputPaths;
         private static string stOutputDir;
 
