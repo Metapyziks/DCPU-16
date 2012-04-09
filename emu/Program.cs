@@ -11,10 +11,10 @@ namespace DCPU16.Emulator
     {
         private static readonly ushort[] stDefaultProgram =
         {
-            0x7c01, 0x0030, 0x7de1, 0x1000, 0x0020, 0x7803, 0x1000, 0xc00d,
-            0x7dc1, 0x001a, 0xa861, 0x7c01, 0x2000, 0x2161, 0x2000, 0x8463,
-            0x806d, 0x7dc1, 0x000d, 0x9031, 0x7c10, 0x0018, 0x7dc1, 0x001a,
-            0x9037, 0x61c1, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
+            0x8031, 0x8041, 0x0c01, 0xb007, 0x7c02, 0x0061, 0x1002, 0x1011,
+            0x7c14, 0x001a, 0x0c12, 0x0111, 0x0019, 0x8442, 0x11fe, 0x001b,
+            0x7dc1, 0x0002, 0x8432, 0x0dfe, 0x001a, 0x7dc1, 0x0001, 0x7dc1,
+            0x0000, 0x8000, 0x0020, 0x0010, 0x0000, 0x0000, 0x0000, 0x0000
         };
 
         private static ConsoleColor[] stColours =
@@ -28,8 +28,8 @@ namespace DCPU16.Emulator
             ConsoleColor.DarkMagenta, ConsoleColor.Magenta
         };
 
-        private static int stScreenRows = 32;
-        private static int stScreenCols = 64;
+        private static int stScreenRows = 16;
+        private static int stScreenCols = 32;
         private static int stScreenBufferLoc = 0x8000;
         private static string stCodePath;
 
@@ -46,10 +46,8 @@ namespace DCPU16.Emulator
                 return;
             }
 
-            Console.WindowWidth = stScreenCols;
-            Console.WindowHeight = stScreenRows;
-            Console.BufferWidth = stScreenCols;
-            Console.BufferHeight = stScreenRows;
+            Console.SetWindowSize( stScreenCols + 2, stScreenRows + 2 );
+            Console.SetBufferSize( stScreenCols + 2, stScreenRows + 2 );
 
             int screenBufferSize = stScreenCols * stScreenRows;
 
@@ -69,7 +67,7 @@ namespace DCPU16.Emulator
                     int pos = e.Location - stScreenBufferLoc;
                     int x = pos % stScreenCols;
                     int y = pos / stScreenCols;
-                    Console.SetCursorPosition( x, y );
+                    Console.SetCursorPosition( x + 1, y + 1 );
                     char c = (char) ( e.Value & 0xff );
                     int fclr = ( e.Value >> 8 ) & 0xf;
                     int bclr = ( e.Value >> 12 ) & 0xf;

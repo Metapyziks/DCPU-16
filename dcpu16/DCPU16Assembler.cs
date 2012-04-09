@@ -392,7 +392,7 @@ namespace DCPU16
                 while ( offset < str.Length - 2 && str[ offset ] == ':' )
                 {
                     String label = "";
-                    while ( char.IsLetterOrDigit( str[ ++offset ] ) || str[ offset ] == '_' )
+                    while ( ++offset < str.Length && ( char.IsLetterOrDigit( str[ offset ] ) || str[ offset ] == '_' ) )
                         label += str[ offset ];
 
                     labels.Add( label, words );
@@ -595,7 +595,7 @@ namespace DCPU16
                 val += str[ offset++ ];
             }
 
-            if ( str[ offset ] == ']' )
+            if ( offset < str.Length && str[ offset ] == ']' )
                 ++offset;
 
             val = val.Trim();

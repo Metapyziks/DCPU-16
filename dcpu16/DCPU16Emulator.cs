@@ -278,7 +278,7 @@ namespace DCPU16
                     case Opcode.Mul:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
-                        val = a * b;
+                        val = valA * valB;
                         Overflow = (ushort) ( ( val >> 0x10 ) & 0xffff );
                         oldPC = myPC;
                         myPC = (ushort) ( myCurPC + 1 );
@@ -297,7 +297,7 @@ namespace DCPU16
                         }
                         else
                         {
-                            val = a / b;
+                            val = valA / valB;
                             Overflow = (ushort) ( ( ( valA << 0x10 ) / valB ) & 0xffff );
                         }
                         oldPC = myPC;

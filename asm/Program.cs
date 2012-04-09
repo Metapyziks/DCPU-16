@@ -9,25 +9,37 @@ namespace DCPU16.Assembler
     class Program
     {
         private static readonly String stDefaultProgram = @"
-            ; Assembler test for DCPU
-            ; by Markus Persson
- 
-            set a, 0xbeef                           ; Assign 0xbeef to register a
-            set [0x1000], a                         ; Assign memory at 0x1000 to value of register a
-            ifn a, [0x1000]                         ; Compare value of register a to memory at 0x1000 ..
-                set PC, end                         ; .. and jump to end if they don't match
- 
-            set i, 0                                ; Init loop counter, for clarity
+            ; Rainbow display test
+			; By Metapyziks
 
-:nextchar   ife [data+i], 0                         ; If the character is 0 ..
-            set PC, end                             ; .. jump to the end
-            set [0x8000+i], [data+i]                ; Video ram starts at 0x8000, copy char there
-            add i, 1                                ; Increase loop counter
-            set PC, nextchar                        ; Loop
- 
-:data       dat ""Hello world!"", 0         ; Zero terminated string
- 
-:end        sub PC, 1                       ; Freeze the CPU forever";
+:start	
+			set x, 0
+:xloop			
+			set y, 0
+:yloop
+			set a, x
+			shl a, 0xc
+			add a, 'A'
+			add a, y
+			
+			set b, y
+			mul b, width
+			add b, x
+			set [display+b], a
+			
+			add y, 1
+			ifg height, y
+				set PC, yloop
+				
+			add x, 1
+			ifg width, x
+				set PC, xloop
+				
+			set PC, start
+			
+:display	dat 0x8000
+:width		dat 0x20
+:height		dat 0x10";
 
         private static string[] stInputPaths;
         private static string stOutputDir;
@@ -38,6 +50,8 @@ namespace DCPU16.Assembler
         {
             if ( !ParseArgs( args ) )
                 return;
+
+            bool error = false;
 
             for ( int f = 0; f < Math.Max( 1, stInputPaths.Length ); ++f )
             {
@@ -81,7 +95,7 @@ namespace DCPU16.Assembler
                         Console.WriteLine( "Error while assembling default input:" );
                     Console.ForegroundColor = ConsoleColor.White;
                     Console.WriteLine( ex.Message );
-                    Console.ReadKey();
+                    error = true;
                 }
                 else
                 {
@@ -123,6 +137,12 @@ namespace DCPU16.Assembler
                         }
                     }
                 }
+            }
+
+            if ( stPrint || error )
+            {
+                Console.WriteLine( "\nPress any key to exit..." );
+                Console.ReadKey();
             }
         }
 
