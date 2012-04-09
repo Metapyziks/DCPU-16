@@ -27,7 +27,7 @@ namespace DCPU16
 
     public class DCPU16Emulator
     {
-        public int RamSizeWords { get; private set; }
+        public const int RamSizeWords = 0x10000;
 
         private ushort[] myMemory;
         private ushort[] myRegisters;
@@ -38,10 +38,8 @@ namespace DCPU16
         private bool mySkip;
         private ushort myCurPC;
 
-        public DCPU16Emulator( int ramSizeWords = 0x10000 )
+        public DCPU16Emulator()
         {
-            RamSizeWords = ramSizeWords;
-
             myMemory = new UInt16[ RamSizeWords ];
             myRegisters = new UInt16[ 8 ];
 
@@ -51,7 +49,7 @@ namespace DCPU16
         public void ResetState()
         {
             myPC = 0;
-            mySP = (ushort) ( RamSizeWords );
+            mySP = 0;
             myOverflow = 0x0000;
             mySkip = false;
             myExited = false;

@@ -14,12 +14,11 @@ namespace DCPU16.Emulator
             0x7c01, 0x0030, 0x7de1, 0x1000, 0x0020, 0x7803, 0x1000, 0xc00d,
             0x7dc1, 0x001a, 0xa861, 0x7c01, 0x2000, 0x2161, 0x2000, 0x8463,
             0x806d, 0x7dc1, 0x000d, 0x9031, 0x7c10, 0x0018, 0x7dc1, 0x001a,
-            0x9037, 0x61c1, 0x7dc1, 0x001a, 0x0000, 0x0000, 0x0000, 0x0000
+            0x9037, 0x61c1, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
         };
 
         private static int stScreenRows = 32;
         private static int stScreenCols = 64;
-        private static int stRamSizeWords = 0x10000;
         private static string stCodePath;
 
         private static DCPU16Emulator myCPU;
@@ -40,7 +39,7 @@ namespace DCPU16.Emulator
             Console.BufferWidth = stScreenCols;
             Console.BufferHeight = stScreenRows;
 
-            myCPU = new DCPU16Emulator( stRamSizeWords );
+            myCPU = new DCPU16Emulator();
 
             if ( stCodePath == null )
                 myCPU.LoadProgram( stDefaultProgram );
@@ -69,13 +68,6 @@ namespace DCPU16.Emulator
                             break;
                         case "-cols":
                             if ( !int.TryParse( args[ ++i ], out stScreenCols ) )
-                            {
-                                Console.WriteLine( "Invalid value for argument \"" + arg + "\"" );
-                                return false;
-                            }
-                            break;
-                        case "-ram":
-                            if ( !int.TryParse( args[ ++i ], out stRamSizeWords ) )
                             {
                                 Console.WriteLine( "Invalid value for argument \"" + arg + "\"" );
                                 return false;

@@ -5,36 +5,58 @@ using System.Text;
 
 namespace DCPU16
 {
-    public class InvalidOpcodeException : Exception
+    public class AssemblerException : Exception
+    {
+        public readonly ushort Line;
+
+        public AssemblerException( ushort line, String message )
+            : base( message + "\n  at Line: " + ( line + 1 ) )
+        {
+            Line = line;
+        }
+    }
+
+    public class InvalidOpcodeException : AssemblerException
     {
         public readonly String Opcode;
 
-        public InvalidOpcodeException( String opcode )
-            : base( "An invalid operator code was encountered: \"" + opcode + "\"" )
+        public InvalidOpcodeException( ushort line, String opcode )
+            : base( line, "An invalid operator code was encountered: \"" + opcode + "\"" )
         {
             Opcode = opcode;
         }
     }
 
-    public class InvalidValueException : Exception
+    public class InvalidValueException : AssemblerException
     {
         public readonly String Value;
 
-        public InvalidValueException( String value )
-            : base( "An invalid value was encountered: \"" + value + "\"" )
+        public InvalidValueException( ushort line, String value )
+            : base( line, "An invalid value was encountered: \"" + value + "\"" )
         {
             Value = value;
         }
     }
 
-    public class InvalidLabelException : Exception
+    public class InvalidLabelException : AssemblerException
     {
         public readonly String Label;
 
-        public InvalidLabelException( String label )
-            : base( "An invalid label was encountered: \"" + label + "\"" )
+        public InvalidLabelException( ushort line, String label )
+            : base( line, "An invalid label was encountered: \"" + label + "\"" )
         {
             Label = label;
+        }
+    }
+
+    public class InvalidLiteralException : AssemblerException
+    {
+        public readonly String Literal;
+
+        public InvalidLiteralException( ushort line, String literal )
+            : base( line, "An invalid literal was encountered: \"" + literal + "\"" )
+        {
+            Literal = literal;
         }
     }
 
@@ -42,14 +64,16 @@ namespace DCPU16
     {
         private abstract class Value
         {
+            public ushort Line { get; private set; }
             public bool Reference { get; private set; }
             public bool Extended { get; protected set; }
             public ushort Assembled { get; protected set; }
             public ushort NextWord { get; protected set; }
             public String Disassembled { get; private set; }
 
-            public Value( bool reference )
+            public Value( ushort line, bool reference )
             {
+                Line = line;
                 Reference = reference;
             }
 
@@ -75,8 +99,8 @@ namespace DCPU16
             public readonly String Label;
             public ushort Offset;
 
-            public RegisterVal( String str, bool reference )
-                : base( reference )
+            public RegisterVal( ushort line, String str, bool reference )
+                : base( line, reference )
             {
                 if ( str.Contains( "+" ) )
                 {
@@ -84,17 +108,17 @@ namespace DCPU16
                     split[ 0 ] = split[ 0 ].Trim();
                     split[ 1 ] = split[ 1 ].Trim();
 
-                    if( Enum.TryParse( split[ 0 ], out Register ) )
+                    if( Enum.TryParse( split[ 0 ].ToUpper(), out Register ) )
                     {
                         if ( char.IsNumber( split[ 1 ][ 0 ] ) )
-                            Offset = ParseNumber( split[ 1 ] );
+                            Offset = ParseNumber( Line, split[ 1 ] );
                         else
                             Label = split[ 1 ];
                     }
-                    else if( Enum.TryParse( split[ 1 ], out Register ) )
+                    else if( Enum.TryParse( split[ 1 ].ToUpper(), out Register ) )
                     {
                         if ( char.IsNumber( split[ 0 ][ 0 ] ) )
-                            Offset = ParseNumber( split[ 0 ] );
+                            Offset = ParseNumber( Line, split[ 0 ] );
                         else
                             Label = split[ 0 ];
                     }
@@ -102,7 +126,7 @@ namespace DCPU16
                     {
                         if( reference )
                             str = "[" + str + "]";
-                        throw new InvalidValueException( str );
+                        throw new InvalidValueException( Line, str );
                     }
                     Extended = true;
                 }
@@ -121,7 +145,7 @@ namespace DCPU16
                     if ( labels.ContainsKey( Label ) )
                         Offset = labels[ Label ];
                     else
-                        throw new InvalidLabelException( Label );
+                        throw new InvalidLabelException( Line, Label );
                 }
 
                 Assembled = (ushort) ( (ushort) Register | ( Reference ? Extended ? 0x10 : 0x08 : 0x00 ) );
@@ -139,8 +163,8 @@ namespace DCPU16
         {
             public readonly SpecType Type;
 
-            public SpecialVal( String str, bool reference )
-                : base( reference )
+            public SpecialVal( ushort line, String str, bool reference )
+                : base( line, reference )
             {
                 Extended = false;
                 switch ( str.ToUpper() )
@@ -184,16 +208,23 @@ namespace DCPU16
             public readonly String Label;
             public ushort Literal;
 
-            public LiteralVal( char ch )
-                : base( false )
+            public LiteralVal( ushort line, char ch )
+                : base( line, false )
             {
                 Literal = (ushort) ch;
                 Extended = true;
             }
 
-            public LiteralVal( String str, bool reference )
-                : base( reference )
+            public LiteralVal( ushort line, String str, bool reference )
+                : base( line, reference )
             {
+                if ( str.Length == 0 )
+                {
+                    if ( reference )
+                        str = "[" + str + "]";
+                    throw new InvalidLiteralException( line, str );
+                }
+
                 if ( str[ 0 ] == '\'' )
                 {
                     Literal = (ushort) str[ 1 ];
@@ -201,7 +232,7 @@ namespace DCPU16
                 }
                 else if ( char.IsNumber( str[ 0 ] ) )
                 {
-                    Literal = ParseNumber( str );
+                    Literal = ParseNumber( Line, str );
                     Extended = Literal >= 0x20;
                 }
                 else
@@ -218,7 +249,7 @@ namespace DCPU16
                     if ( labels.ContainsKey( Label ) )
                         Literal = labels[ Label ];
                     else
-                        throw new InvalidLabelException( Label );
+                        throw new InvalidLabelException( Line, Label );
 
                     Extended = true;
                 }
@@ -316,6 +347,7 @@ namespace DCPU16
 
                     for ( int i = 0; i < Values.Length; ++i )
                     {
+                        Values[ i ].ResolveLabel( labels );
                         Assembled[ i ] = Values[ i ].NextWord;
                         Disassembled += Values[ i ].Disassembled;
                         if ( i < Values.Length - 1 )
@@ -383,7 +415,7 @@ namespace DCPU16
                 }
             }
 
-            Opcode opcode = ParseOperator( opString );
+            Opcode opcode = ParseOperator( GetLineNumber( str, offset ), opString );
 
             if ( opcode == Opcode.Dat )
             {
@@ -391,7 +423,42 @@ namespace DCPU16
                 do
                 {
                     SkipWhitespace( str, ref offset );
-                    vals.Add( (LiteralVal) ReadValue( str, ref offset ) );
+                    bool escaped = false;
+                    if ( str[ offset ] == '"' )
+                    {
+                        while ( ++offset < str.Length && ( escaped || str[ offset ] != '"' ) )
+                        {
+                            if ( escaped )
+                            {
+                                switch ( str[ offset ] )
+                                {
+                                    case 'r':
+                                        vals.Add( new LiteralVal( GetLineNumber( str, offset ), '\r' ) ); break;
+                                    case '\\':
+                                        vals.Add( new LiteralVal( GetLineNumber( str, offset ), '\\' ) ); break;
+                                    case 'n':
+                                        vals.Add( new LiteralVal( GetLineNumber( str, offset ), '\n' ) ); break;
+                                    case 't':
+                                        vals.Add( new LiteralVal( GetLineNumber( str, offset ), '\t' ) ); break;
+                                    default:
+                                        vals.Add( new LiteralVal( GetLineNumber( str, offset ), '\r' ) ); break;
+                                }
+                                escaped = false;
+                                continue;
+                            }
+                            else if ( str[ offset ] == '\\' )
+                            {
+                                escaped = true;
+                                continue;
+                            }
+
+                            vals.Add( new LiteralVal( GetLineNumber( str, offset ), str[ offset ] ) );
+                        }
+
+                        ++offset;
+                    }
+                    else
+                        vals.Add( (LiteralVal) ReadValue( str, ref offset ) );
                 }
                 while ( offset < str.Length && str[ offset ] == ',' && ++offset < str.Length );
 
@@ -405,6 +472,8 @@ namespace DCPU16
                     return null;
                 if ( (int) opcode < 0x10 )
                 {
+                    if ( str[ offset ] != ',' )
+                        throw new AssemblerException( GetLineNumber( str, offset ), "Expected a \",\" between values" );
                     ++offset;
                     SkipWhitespace( str, ref offset );
                     Value valB = ReadValue( str, ref offset );
@@ -433,7 +502,7 @@ namespace DCPU16
             while ( ( comment || char.IsWhiteSpace( str[ offset ] ) ) && ( ++offset < str.Length ) );
         }
 
-        private static Opcode ParseOperator( String str )
+        private static Opcode ParseOperator( ushort line, String str )
         {
             String opstr = str.ToUpper();
 
@@ -474,7 +543,7 @@ namespace DCPU16
                 case "JSR":
                     return Opcode.Jsr;
                 default:
-                    throw new InvalidOpcodeException( opstr );
+                    throw new InvalidOpcodeException( line, str );
             }
         }
 
@@ -497,13 +566,13 @@ namespace DCPU16
                     {
                         switch( str[ offset ] )
                         {
-                            case '\r':
+                            case 'r':
                                 val += "\r"; break;
                             case '\\':
                                 val += "\\"; break;
-                            case '\n':
+                            case 'n':
                                 val += "\n"; break;
-                            case '\t':
+                            case 't':
                                 val += "\t"; break;
                             default:
                                 val += str[ offset ]; break;
@@ -532,7 +601,7 @@ namespace DCPU16
             val = val.Trim();
 
             if ( val.Contains( "+" ) )
-                return new RegisterVal( val, reference );
+                return new RegisterVal( GetLineNumber( str, offset ), val, reference );
 
             switch ( val.ToUpper() )
             {
@@ -544,37 +613,54 @@ namespace DCPU16
                 case "Z":
                 case "I":
                 case "J":
-                    return new RegisterVal( val, reference );
+                    return new RegisterVal( GetLineNumber( str, offset ), val, reference );
                 case "POP":
                 case "PUSH":
                 case "PEEK":
                 case "SP":
                 case "PC":
                 case "O":
-                    return new SpecialVal( val, reference );
+                    return new SpecialVal( GetLineNumber( str, offset ), val, reference );
                 default:
-                    return new LiteralVal( val, reference );
+                    return new LiteralVal( GetLineNumber( str, offset ), val, reference );
             }
         }
 
-        private static ushort ParseNumber( String str )
+        private static ushort GetLineNumber( String str, int offset )
         {
-            if ( str.Length > 1 && char.IsLetter( str[ 1 ] ) )
-            {
-                switch ( str.ToLower()[ 1 ] )
-                {
-                    case 'b':
-                        return Convert.ToUInt16( str.Substring( 2 ), 2 );
-                    case 'd':
-                        return Convert.ToUInt16( str.Substring( 2 ), 10 );
-                    case 'x':
-                        return Convert.ToUInt16( str.Substring( 2 ), 16 );
-                    default:
-                        return 0;
-                }
-            }
+            ushort num = 0;
+            for ( int i = 0; i < Math.Min( str.Length, offset ); ++i )
+                if ( str[ i ] == '\n' )
+                    ++num;
 
-            return Convert.ToUInt16( str );
+            return num;
+        }
+
+        private static ushort ParseNumber( ushort line, String str )
+        {
+            try
+            {
+                if ( str.Length > 1 && char.IsLetter( str[ 1 ] ) )
+                {
+                    switch ( str.ToLower()[ 1 ] )
+                    {
+                        case 'b':
+                            return Convert.ToUInt16( str.Substring( 2 ), 2 );
+                        case 'd':
+                            return Convert.ToUInt16( str.Substring( 2 ), 10 );
+                        case 'x':
+                            return Convert.ToUInt16( str.Substring( 2 ), 16 );
+                        default:
+                            return 0;
+                    }
+                }
+
+                return Convert.ToUInt16( str );
+            }
+            catch
+            {
+                throw new InvalidLiteralException( line, str );
+            }
         }
     }
 }

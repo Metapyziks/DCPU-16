@@ -9,37 +9,28 @@ namespace DCPU16.Assembler
     class Program
     {
         private static readonly String stDefaultProgram = @"
-        ; Try some basic stuff
-                      SET A, '\\'               ; 7c01 0030
-                      SET [0x1000], 'a'        ; 7de1 1000 0020
-                      SUB A, [0x1000]          ; 7803 1000
-                      IFN A, 0x10              ; c00d 
-                          SET PC, crash        ; 7dc1 001a [*]
-                      
-        ; Do a loopy thing
-                      SET I, 10                ; a861
-                      SET A, 0x2000            ; 7c01 2000
-        loop:         SET [0x2000+I], [A]      ; 2161 2000
-                      SUB I, 1                 ; 8463
-                      IFN I, 0                 ; 806d
-                          SET PC, loop         ; 7dc1 000d [*]
-        
-        ; Call a subroutine
-                      SET X, 0x4               ; 9031
-                      JSR testsub              ; 7c10 0018 [*]
-                      SET PC, crash            ; 7dc1 001a [*]
-        
-        testsub:      SHL X, 4                 ; 9037
-                      SET PC, POP              ; 61c1
-                        
-        ; Hang forever. X should now be 0x40 if everything went right.
-        crash:        SET PC, crash            ; 7dc1 001a [*]
-        
-        ; [*]: Note that these can be one word shorter and one cycle faster by using the short form (0x00-0x1f) of literals,
-        ;      but my assembler doesn't support short form labels yet.";
+            ; Assembler test for DCPU
+            ; by Markus Persson
+ 
+            set a, 0xbeef                           ; Assign 0xbeef to register a
+            set [0x1000], a                         ; Assign memory at 0x1000 to value of register a
+            ifn a, [0x1000]                         ; Compare value of register a to memory at 0x1000 ..
+                set PC, end                         ; .. and jump to end if they don't match
+ 
+            set i, 0                                ; Init loop counter, for clarity
 
-        private static string stInputPath;
-        private static string stOutputPath;
+:nextchar   ife [data+i], 0                         ; If the character is 0 ..
+            set PC, end                             ; .. jump to the end
+            set [0x8000+i], [data+i]                ; Video ram starts at 0x8000, copy char there
+            add i, 1                                ; Increase loop counter
+            set PC, nextchar                        ; Loop
+ 
+:data       dat ""Hello world!"", 0         ; Zero terminated string
+ 
+:end        sub PC, 1                       ; Freeze the CPU forever";
+
+        private static string[] stInputPaths;
+        private static string stOutputDir;
 
         private static bool stPrint = true;
 
@@ -48,55 +39,88 @@ namespace DCPU16.Assembler
             if ( !ParseArgs( args ) )
                 return;
 
-            if ( stInputPath != null && !File.Exists( stInputPath ) )
+            for ( int f = 0; f < Math.Max( 1, stInputPaths.Length ); ++f )
             {
-                Console.WriteLine( "No such file found at \"" + stInputPath + "\"" );
-                return;
-            }
+                ushort[] output = null;
+                Exception ex = null;
 
-            ushort[] output;
-
-            if ( stInputPath == null )
-                output = DCPU16Assembler.Assemble( stDefaultProgram );
-            else
-                output = DCPU16Assembler.Assemble( File.ReadAllText( stInputPath ) );
-
-            if ( stPrint )
-            {
-                for ( int i = 0; i < ( ( output.Length + 7 ) / 8 ) * 8; ++i )
+                if ( stInputPaths.Length == 0 )
                 {
-                    if ( i % 8 == 0 )
-                        Console.Write( i.ToString( "X4" ) + ": " );
-
-                    if ( i < output.Length )
-                        Console.Write( output[ i ].ToString( "X4" ).ToLower() + " " );
-                    else
-                        Console.Write( "0000 " );
-
-                    if ( i % 8 == 7 )
-                        Console.WriteLine();
+                    try
+                    {
+                        output = DCPU16Assembler.Assemble( stDefaultProgram );
+                    }
+                    catch ( Exception e )
+                    {
+                        ex = e;
+                    }
+                }
+                else if ( File.Exists( stInputPaths[ f ] ) )
+                {
+                    try
+                    {
+                        output = DCPU16Assembler.Assemble( File.ReadAllText( stInputPaths[ f ] ) );
+                    }
+                    catch ( Exception e )
+                    {
+                        ex = e;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine( "File \"" + stInputPaths[ f ] + "\" does not exist!" );
+                    break;
                 }
 
-                Console.WriteLine( "Press any key to continue..." );
-                Console.ReadKey();
-            }
-
-            if ( stOutputPath == null && stInputPath != null )
-            {
-                stOutputPath = stInputPath;
-                int dot = stOutputPath.IndexOf( '.' );
-                if ( dot > -1 )
-                    stOutputPath = stOutputPath.Substring( 0, dot ) + ".dcpu16";
-            }
-
-            if ( stOutputPath != null )
-            {
-                using ( FileStream stream = new FileStream( stOutputPath, FileMode.Create, FileAccess.Write ) )
+                if ( ex != null )
                 {
-                    for ( int i = 0; i < output.Length; ++i )
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    if ( stInputPaths.Length > 0 )
+                        Console.WriteLine( "Error while assembling " + stInputPaths[ f ] + ":" );
+                    else
+                        Console.WriteLine( "Error while assembling default input:" );
+                    Console.ForegroundColor = ConsoleColor.White;
+                    Console.WriteLine( ex.Message );
+                    Console.ReadKey();
+                }
+                else
+                {
+                    if ( stPrint )
                     {
-                        stream.WriteByte( (byte) ( ( output[ i ] >> 0x8 ) & 0xff ) );
-                        stream.WriteByte( (byte) ( output[ i ] & 0xff ) );
+                        if ( stInputPaths.Length > 0 )
+                            Console.WriteLine( "Assembled code for " + stInputPaths[ f ] + ":" );
+                        else
+                            Console.WriteLine( "Assembled code for default input:" );
+
+                        for ( int i = 0; i < ( ( output.Length + 7 ) / 8 ) * 8; ++i )
+                        {
+                            if ( i % 8 == 0 )
+                                Console.Write( "  " + i.ToString( "X4" ) + ": " );
+
+                            if ( i < output.Length )
+                                Console.Write( output[ i ].ToString( "X4" ).ToLower() + " " );
+                            else
+                                Console.Write( "0000 " );
+
+                            if ( i % 8 == 7 )
+                                Console.WriteLine();
+                        }
+                    }
+
+                    if ( stInputPaths.Length != 0 )
+                    {
+                        String outPath = stOutputDir ?? Path.GetDirectoryName( stInputPaths[ f ] );
+
+                        outPath += Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension( stInputPaths[ f ] ) + ".dcpu16";
+
+                        using ( FileStream stream = new FileStream( outPath, FileMode.Create, FileAccess.Write ) )
+                        {
+                            for ( int i = 0; i < output.Length; ++i )
+                            {
+                                stream.WriteByte( (byte) ( ( output[ i ] >> 0x8 ) & 0xff ) );
+                                stream.WriteByte( (byte) ( output[ i ] & 0xff ) );
+                            }
+                        }
                     }
                 }
             }
@@ -104,6 +128,8 @@ namespace DCPU16.Assembler
 
         static bool ParseArgs( string[] args )
         {
+            List<String> inputPaths = new List<string>();
+
             for ( int i = 0; i < args.Length; ++i )
             {
                 String arg = args[ i ];
@@ -114,21 +140,20 @@ namespace DCPU16.Assembler
                         case "-print":
                             stPrint = true;
                             break;
+                        case "-outdir":
+                            if( ++i < args.Length )
+                                stOutputDir = args[ i ];
+                            break;
                         default:
                             Console.WriteLine( "Invalid argument \"" + arg + "\"" );
                             return false;
                     }
                 }
-                else if ( stInputPath == null )
-                {
-                    stInputPath = arg;
-                }
-                else if ( stOutputPath == null )
-                {
-                    stOutputPath = arg;
-                }
+                else
+                    inputPaths.Add( arg );
             }
 
+            stInputPaths = inputPaths.ToArray();
             return true;
         }
     }
