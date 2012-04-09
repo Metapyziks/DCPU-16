@@ -11,10 +11,9 @@ namespace DCPU16.Emulator
     {
         private static readonly ushort[] stDefaultProgram =
         {
-            0x8031, 0x8041, 0x0c01, 0xb007, 0x7c02, 0x0061, 0x1002, 0x1011,
-            0x7c14, 0x001a, 0x0c12, 0x0111, 0x0019, 0x8442, 0x11fe, 0x001b,
-            0x7dc1, 0x0002, 0x8432, 0x0dfe, 0x001a, 0x7dc1, 0x0001, 0x7dc1,
-            0x0000, 0x8000, 0x0020, 0x0010, 0x0000, 0x0000, 0x0000, 0x0000
+            0x8061, 0x81ec, 0x8200, 0x7dc1, 0x0001, 0x7801, 0x8200, 0x81e1,
+            0x8200, 0x7c0a, 0x0300, 0x0161, 0x8000, 0x8462, 0x7c6c, 0x0200,
+            0x8061, 0x7dc1, 0x0001
         };
 
         private static ConsoleColor[] stColours =
@@ -31,6 +30,7 @@ namespace DCPU16.Emulator
         private static int stScreenRows = 16;
         private static int stScreenCols = 32;
         private static int stScreenBufferLoc = 0x8000;
+        private static int stKeyboardLoc = 0x8200;
         private static string stCodePath;
 
         private static DCPU16Emulator myCPU;
@@ -77,8 +77,35 @@ namespace DCPU16.Emulator
                 }
             };
 
+            Thread inputThread = new Thread( InputThreadEntry );
+            inputThread.Start();
+
             while ( !myCPU.Exited )
                 myCPU.Step();
+        }
+
+        static void InputThreadEntry()
+        {
+            Queue<ConsoleKeyInfo> keyQueue = new Queue<ConsoleKeyInfo>();
+
+            myCPU.MemoryChanged += delegate( object sender, MemoryChangedEventArgs e )
+            {
+                if ( e.Location == stKeyboardLoc && e.Value == 0x0000 && keyQueue.Count > 0 )
+                    lock ( keyQueue )
+                        myCPU.SetMemory( stKeyboardLoc, (ushort) keyQueue.Dequeue().KeyChar );
+            };
+
+            while ( !myCPU.Exited )
+            {
+                ConsoleKeyInfo key = Console.ReadKey( true );
+                lock ( keyQueue )
+                {
+                    if ( keyQueue.Count == 0 && myCPU.GetMemory( stKeyboardLoc ) == 0x0000 )
+                        myCPU.SetMemory( stKeyboardLoc, (ushort) key.KeyChar );
+                    else
+                        keyQueue.Enqueue( key );
+                }
+            }
         }
 
         static bool ParseArgs( string[] args )
@@ -106,6 +133,13 @@ namespace DCPU16.Emulator
                             break;
                         case "-vidloc":
                             if ( !int.TryParse( args[ ++i ], out stScreenBufferLoc ) )
+                            {
+                                Console.WriteLine( "Invalid value for argument \"" + arg + "\"" );
+                                return false;
+                            }
+                            break;
+                        case "-keyloc":
+                            if ( !int.TryParse( args[ ++i ], out stKeyboardLoc ) )
                             {
                                 Console.WriteLine( "Invalid value for argument \"" + arg + "\"" );
                                 return false;
