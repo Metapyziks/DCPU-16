@@ -1,19 +1,17 @@
-			; Assembler test for DCPU
-            ; by Markus Persson
- 
-            set a, 0xbeef                           ; Assign 0xbeef to register a
-            set [0x1000], a                         ; Assign memory at 0x1000 to value of register a
-            ifn a, [0x1000]                         ; Compare value of register a to memory at 0x1000 ..
-                set PC, end                         ; .. and jump to end if they don't match
- 
-            set i, 0                                ; Init loop counter, for clarity
+			; Hello world for DCPU-16
+			; By Metapyziks
 
-:nextchar   ife [data+i], 0                         ; If the character is 0 ..
-            set PC, end                             ; .. jump to the end
-            set [0x8000+i], [data+i]                ; Video ram starts at 0x8000, copy char there
-            add i, 1                                ; Increase loop counter
-            set PC, nextchar                        ; Loop
- 
-:data       dat "Hello world!", 0         			; Zero terminated string
- 
-:end        sub PC, 1                       		; Freeze the CPU forever
+			set i, 0					; Initialise loop
+nextchar:
+			ife [data+i], 0				; If we have reached the end of the string
+				set PC, end				; Goto the end
+			
+            set a, [data+i]				; Load the next character
+			bor a, 0x0300				; Set the colour to white
+            set [0x8000+i], a			; Set the value in video memory
+            add i, 1					; Increment the loop
+            set PC, nextchar			; Loop back to do the next character
+data:       
+			dat "Hello world!", 0		; Null terminated string to print
+end:
+			set PC, end					; Hang forever

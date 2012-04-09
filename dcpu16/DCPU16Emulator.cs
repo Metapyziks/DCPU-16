@@ -25,6 +25,30 @@ namespace DCPU16
         Jsr = 0x10
     }
 
+    public class RegisterChangedEventArgs : EventArgs
+    {
+        public readonly Register Register;
+        public readonly ushort Value;
+
+        public RegisterChangedEventArgs( Register register, ushort value )
+        {
+            Register = register;
+            Value = value;
+        }
+    }
+
+    public class MemoryChangedEventArgs : EventArgs
+    {
+        public readonly int Location;
+        public readonly ushort Value;
+
+        public MemoryChangedEventArgs( int location, ushort value )
+        {
+            Location = location;
+            Value = value;
+        }
+    }
+
     public class DCPU16Emulator
     {
         public const int RamSizeWords = 0x10000;
@@ -37,6 +61,9 @@ namespace DCPU16
         private ushort myOverflow;
         private bool mySkip;
         private ushort myCurPC;
+
+        public event EventHandler<RegisterChangedEventArgs> RegisterChanged;
+        public event EventHandler<MemoryChangedEventArgs> MemoryChanged;
 
         public DCPU16Emulator()
         {
@@ -58,7 +85,7 @@ namespace DCPU16
         public void LoadProgram( ushort[] program, ushort offset = 0x0000 )
         {
             for ( int i = 0; i < program.Length; ++i )
-                myMemory[ i + offset ] = program[ i ];
+                SetMemory( i + offset, program[ i ] );
         }
 
         public void LoadProgram( byte[] program, ushort offset = 0x0000 )
@@ -69,9 +96,9 @@ namespace DCPU16
                 int s = i % 2;
 
                 if ( s == 0 )
-                    myMemory[ j ] = (ushort) ( program[ i ] << 0x8 );
+                    SetMemory( j, (ushort) ( program[ i ] << 0x8 ) );
                 else
-                    myMemory[ j ] |= program[ i ];
+                    SetMemory( j, (ushort) ( myMemory[ j ] | program[ i ] ) );
             }
         }
 
@@ -82,8 +109,27 @@ namespace DCPU16
 
         public void SetRegister( Register register, ushort value )
         {
-            if( !mySkip )
+            if ( !mySkip )
+            {
                 myRegisters[ (int) register ] = value;
+
+                if ( RegisterChanged != null )
+                    RegisterChanged( this, new RegisterChangedEventArgs( register, value ) );
+            }
+        }
+
+        public ushort GetMemory( int location )
+        {
+            return myMemory[ location & 0xffff ];
+        }
+
+        public void SetMemory( int location, ushort value )
+        {
+            location &= 0xffff;
+            myMemory[ location ] = value;
+
+            if ( MemoryChanged != null )
+                MemoryChanged( this, new MemoryChangedEventArgs( location, value ) );
         }
 
         public ushort Pop()
@@ -94,7 +140,7 @@ namespace DCPU16
         public void Pop( ushort value )
         {
             if ( !mySkip )
-                myMemory[ mySP++ ] = value;
+                SetMemory( mySP++, value );
         }
 
         public ushort Peek()
@@ -105,7 +151,7 @@ namespace DCPU16
         public void Peek( ushort value )
         {
             if ( !mySkip )
-                myMemory[ mySP ] = value;
+                SetMemory( mySP, value );
         }
 
         public ushort Push()
@@ -116,7 +162,7 @@ namespace DCPU16
         public void Push( ushort value )
         {
             if ( !mySkip )
-                myMemory[ --mySP ] = value;
+                SetMemory( --mySP, value );
         }
 
         public bool Exited
@@ -152,7 +198,7 @@ namespace DCPU16
         public int Step()
         {
             bool skip = mySkip;
-            ushort word = myMemory[ myCurPC = (ushort) ( myPC++ & ( RamSizeWords - 1 ) ) ];
+            ushort word = myMemory[ myCurPC = myPC++ ];
 
             if ( word == 0x0000 )
             {
@@ -386,7 +432,7 @@ namespace DCPU16
 
                 if ( identifier >= 0x10 )
                 {
-                    value += myMemory[ myPC++ & ( RamSizeWords - 1 ) ];
+                    value += myMemory[ myPC++ ];
                     ++cycles;
                 }
             }
@@ -420,7 +466,7 @@ namespace DCPU16
                         break;
                     case 0x1e:
                     case 0x1f:
-                        value = myMemory[ myPC++ & ( RamSizeWords - 1 ) ];
+                        value = myMemory[ myPC++ ];
                         reference = identifier == 0x1e;
                         ++cycles;
                         break;
@@ -432,7 +478,7 @@ namespace DCPU16
             }
 
             if ( reference )
-                value = myMemory[ value & ( RamSizeWords - 1 ) ];
+                value = myMemory[ value ];
 
             return value;
         }
@@ -453,10 +499,10 @@ namespace DCPU16
                 if ( identifier < 0x08 )
                     SetRegister( register, value );
                 else if ( identifier < 0x10 )
-                    myMemory[ GetRegister( register ) & ( RamSizeWords - 1 ) ] = value;
+                    SetMemory( GetRegister( register ), value );
                 else
                 {
-                    myMemory[ ( GetRegister( register ) + myMemory[ myPC++ ] ) & ( RamSizeWords - 1 ) ] = value;
+                    SetMemory( GetRegister( register ) + myMemory[ myPC++ ], value );
                     ++cycles;
                 }
             }
@@ -465,13 +511,13 @@ namespace DCPU16
                 switch ( identifier )
                 {
                     case 0x18:
-                        myMemory[ mySP++ & ( RamSizeWords - 1 ) ] = value;
+                        SetMemory( mySP++, value );
                         break;
                     case 0x19:
-                        myMemory[ mySP & ( RamSizeWords - 1 ) ] = value;
+                        SetMemory( mySP, value );
                         break;
                     case 0x1a:
-                        myMemory[ --mySP & ( RamSizeWords - 1 ) ] = value;
+                        SetMemory( --mySP, value );
                         break;
                     case 0x1b:
                         mySP = value;
@@ -483,7 +529,7 @@ namespace DCPU16
                         myOverflow = value;
                         break;
                     case 0x1e:
-                        myMemory[ myMemory[ myPC++ & ( RamSizeWords - 1 ) ] & ( RamSizeWords - 1 ) ] = value;
+                        SetMemory( myMemory[ myPC++ ], value );
                         ++cycles;
                         break;
                     case 0x1f:

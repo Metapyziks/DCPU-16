@@ -17,8 +17,20 @@ namespace DCPU16.Emulator
             0x9037, 0x61c1, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
         };
 
+        private static ConsoleColor[] stColours =
+        {
+            ConsoleColor.Black, ConsoleColor.DarkGray, ConsoleColor.Gray, ConsoleColor.White,
+            ConsoleColor.DarkRed, ConsoleColor.Red,
+            ConsoleColor.DarkYellow, ConsoleColor.Yellow,
+            ConsoleColor.DarkGreen, ConsoleColor.Green,
+            ConsoleColor.DarkCyan, ConsoleColor.Cyan,
+            ConsoleColor.DarkBlue, ConsoleColor.Blue,
+            ConsoleColor.DarkMagenta, ConsoleColor.Magenta
+        };
+
         private static int stScreenRows = 32;
         private static int stScreenCols = 64;
+        private static int stScreenBufferLoc = 0x8000;
         private static string stCodePath;
 
         private static DCPU16Emulator myCPU;
@@ -39,6 +51,8 @@ namespace DCPU16.Emulator
             Console.BufferWidth = stScreenCols;
             Console.BufferHeight = stScreenRows;
 
+            int screenBufferSize = stScreenCols * stScreenRows;
+
             myCPU = new DCPU16Emulator();
 
             if ( stCodePath == null )
@@ -46,8 +60,27 @@ namespace DCPU16.Emulator
             else
                 myCPU.LoadProgram( File.ReadAllBytes( stCodePath ) );
 
+            Console.CursorVisible = false;
+
+            myCPU.MemoryChanged += delegate( object sender, MemoryChangedEventArgs e )
+            {
+                if ( e.Location >= stScreenBufferLoc && e.Location < stScreenBufferLoc + screenBufferSize )
+                {
+                    int pos = e.Location - stScreenBufferLoc;
+                    int x = pos % stScreenCols;
+                    int y = pos / stScreenCols;
+                    Console.SetCursorPosition( x, y );
+                    char c = (char) ( e.Value & 0xff );
+                    int fclr = ( e.Value >> 8 ) & 0xf;
+                    int bclr = ( e.Value >> 12 ) & 0xf;
+                    Console.ForegroundColor = stColours[ fclr ];
+                    Console.BackgroundColor = stColours[ bclr ];
+                    Console.Write( c );
+                }
+            };
+
             while ( !myCPU.Exited )
-                Thread.Sleep( myCPU.Step() * 10 );
+                myCPU.Step();
         }
 
         static bool ParseArgs( string[] args )
@@ -68,6 +101,13 @@ namespace DCPU16.Emulator
                             break;
                         case "-cols":
                             if ( !int.TryParse( args[ ++i ], out stScreenCols ) )
+                            {
+                                Console.WriteLine( "Invalid value for argument \"" + arg + "\"" );
+                                return false;
+                            }
+                            break;
+                        case "-vidloc":
+                            if ( !int.TryParse( args[ ++i ], out stScreenBufferLoc ) )
                             {
                                 Console.WriteLine( "Invalid value for argument \"" + arg + "\"" );
                                 return false;
