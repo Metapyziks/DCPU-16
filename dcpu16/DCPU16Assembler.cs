@@ -600,7 +600,7 @@ namespace DCPU16
 
             val = val.Trim();
 
-            if ( val.Contains( "+" ) )
+            if ( val[ 0 ] != '\'' && val.Contains( "+" ) )
                 return new RegisterVal( GetLineNumber( str, offset ), val, reference );
 
             switch ( val.ToUpper() )
