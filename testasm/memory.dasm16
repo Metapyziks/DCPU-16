@@ -4,7 +4,7 @@
 			SET [0x9fff], 0x0000
 			SET [0xa000], 0x4000
 			SET PC, init
-:malloc
+:__malloc__
 			SET PUSH, X
 			SET PUSH, Y
 			SET PUSH, Z
@@ -55,7 +55,9 @@
 			SET PC, __malloc__allocate_3
 :__malloc__allocate_2
 			ADD I, X
-			ADD [0xa000+J], [0xa000+I]
+			SET Y, [0xa000+I]
+			SUB Y, 1
+			ADD [0xa000+J], Y
 			SUB I, X
 :__malloc__allocate_3
 			SET A, I
@@ -66,28 +68,136 @@
 			SET Y, POP
 			SET X, POP
 			SET PC, POP
+:__free__
+			SET PUSH, X
+			SET PUSH, Y
+			SET PUSH, Z
+			SET PUSH, I
+			SET PUSH, J
+			SUB A, 0xa000
+			SET I, 0
+			SET J, 0
+			SET X, [0x9fff]
+			IFE X, 0x0001
+				SET PC, __free__filled
+:__free__empty
+			SET X, [0xa000+I]
+			SET J, I
+			ADD I, X
+:__free__filled
+			SET X, [0xa000+I]
+			SET Y, I
+			ADD Y, X
+			IFG Y, A
+				SET PC, __free__deallocate
+			ADD I, X
+			SET PC, __free__empty
+:__free__deallocate
+			SET Z, A
+			SUB Z, 1
+			IFE Z, I
+				SET PC, __free__deallocate__0
+			ADD Z, 1
+			ADD Z, B
+			IFE Y, Z
+				SET PC, __free__deallocate__2
+			SET J, A
+			SUB A, I
+			SET [0xa000+I], A
+			SET Y, B
+			SUB Y, 1
+			SET [0xa000+J], Y
+			SUB X, A
+			SUB X, B
+			ADD X, 1
+			ADD J, B
+			SUB J, 1
+			SET [0xa000+J], X
+			SET PC, __free__deallocate__3
+:__free__deallocate__0
+			IFE I, 0
+				SET [0x9fff], 0x0000
+			IFE I, 0
+				SET [0xa000], 0x0000
+			ADD Z, B
+			ADD Z, 1
+			IFE Y, Z
+				SET PC, __free__deallocate__1
+			ADD [0xa000+J], B
+			ADD J, B
+			SUB X, B
+			SET [0xa000+J], X
+			SET PC, __free__deallocate__3
+:__free__deallocate__1
+			ADD [0xa000+J], X
+			ADD I, X
+			ADD [0xa000+J], [0xa000+I]
+			SET PC, __free__deallocate__3
+:__free__deallocate__2
+			SET J, I
+			ADD J, X
+			SET Y, [0xa000+J]
+			ADD Y, B
+			SUB X, B
+			SET [0xa000+I], X
+			ADD I, X
+			SET [0xa000+I], Y
+:__free__deallocate__3
+			SET J, POP
+			SET I, POP
+			SET Z, POP
+			SET Y, POP
+			SET X, POP
+			SET PC, POP
 :init
 			SET A, 0x04
-			JSR malloc
+			JSR __malloc__
+			SET X, A
 			SET [A+0], 0xffff
 			SET [A+1], 0xdead
 			SET [A+2], 0xbeef
 			SET [A+3], 0xffff
 			
 			SET A, 0x02
-			JSR malloc
+			JSR __malloc__
 			SET [A+0], 0x1234
 			SET [A+1], 0x5678
 			
 			SET A, 0x10
-			JSR malloc
+			JSR __malloc__
 			SET I, 0
 :loop
 			SET [A], I
 			ADD A, 1
 			ADD I, 1
 			IFG 0x10, I
-				SET PC, loop		
-:end
-			DAT 0x0000
+				SET PC, loop
 			
+			SET A, X
+			SET B, 0x12
+			JSR __free__
+			
+			SET A, 0x08
+			JSR __malloc__
+			SET [A+0], 0xffff
+			SET [A+1], 0xffff
+			SET [A+2], 0xffff
+			SET [A+3], 0xffff
+			SET [A+4], 0xffff
+			SET [A+5], 0xffff
+			SET [A+6], 0xffff
+			SET [A+7], 0xffff
+			SET A, 0xa
+			JSR __malloc__
+			SET [A+0], 0xeeee
+			SET [A+1], 0xeeee
+			SET [A+2], 0xeeee
+			SET [A+3], 0xeeee
+			SET [A+4], 0xeeee
+			SET [A+5], 0xeeee
+			SET [A+6], 0xeeee
+			SET [A+7], 0xeeee
+			SET [A+8], 0xeeee
+			SET [A+9], 0xeeee
+:end
+			SET PC, end
