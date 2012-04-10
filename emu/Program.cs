@@ -40,7 +40,7 @@ namespace DCPU16.Emulator
         private static int stScreenRows = 16;
         private static int stScreenCols = 32;
         private static int stScreenBufferLoc = 0x8000;
-        private static int stKeyboardLoc = 0x8200;
+        private static int stKeyboardLoc = 0x8400;
         private static String stCodePath;
         private static bool stMemDump = true;
 
@@ -136,12 +136,18 @@ namespace DCPU16.Emulator
         static void InputThreadEntry()
         {
             Queue<ConsoleKeyInfo> keyQueue = new Queue<ConsoleKeyInfo>();
+            int keypointer = 0;
 
             myCPU.MemoryChanged += delegate( object sender, MemoryChangedEventArgs e )
             {
-                if ( e.Location == stKeyboardLoc && e.Value == 0x0000 && keyQueue.Count > 0 )
+                if ( e.Location == stKeyboardLoc + keypointer && e.Value == 0x0000 && keyQueue.Count > 0 )
+                {
                     lock ( keyQueue )
-                        myCPU.SetMemory( stKeyboardLoc, (ushort) keyQueue.Dequeue().KeyChar );
+                    {
+                        myCPU.SetMemory( stKeyboardLoc + keypointer++, (ushort) keyQueue.Dequeue().KeyChar );
+                        keypointer &= 0xf;
+                    }
+                }
             };
 
             while ( !myCPU.Exited )
@@ -150,7 +156,10 @@ namespace DCPU16.Emulator
                 lock ( keyQueue )
                 {
                     if ( keyQueue.Count == 0 && myCPU.GetMemory( stKeyboardLoc ) == 0x0000 )
-                        myCPU.SetMemory( stKeyboardLoc, (ushort) key.KeyChar );
+                    {
+                        myCPU.SetMemory( stKeyboardLoc + keypointer++, (ushort) key.KeyChar );
+                        keypointer &= 0xf;
+                    }
                     else
                         keyQueue.Enqueue( key );
                 }

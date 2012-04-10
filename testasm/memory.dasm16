@@ -1,8 +1,8 @@
 			; Memory allocation test
 			; By Metapyziks
 			
-			SET [0x8fff], 0x0000
-			SET [0x9000], 0x4000
+			SET [0x9fff], 0x0000
+			SET [0xa000], 0x4000
 			SET PC, init
 :malloc
 			SET PUSH, X
@@ -12,11 +12,11 @@
 			SET PUSH, J
 			SET I, 0
 			SET J, 0
-			SET X, [0x8fff]
+			SET X, [0x9fff]
 			IFE X, 0x0001
 				SET PC, __malloc__filled
 :__malloc__empty
-			SET X, [0x9000+I]
+			SET X, [0xa000+I]
 			SET Y, I
 			ADD Y, X
 			SET Z, X
@@ -28,21 +28,22 @@
 				SET PC, __malloc__allocate
 			ADD I, X
 :__malloc__filled
-			SET X, [0x9000+I]
+			SET X, [0xa000+I]
 			SET J, I
 			ADD I, X
 			SET PC, __malloc__empty
 :__malloc__allocate
 			IFE I, 0
 				SET PC, __malloc__allocate_0
-			ADD [0x9000+J], A
+			ADD [0xa000+J], A
 			SUB I, 1
 			ADD X, 1
 			SET PC, __malloc__allocate_1
 :__malloc__allocate_0
-			SET [0x8fff], 0x0001
-			SET [0x9000], A
-			ADD [0x9000], 1
+			SET [0x9fff], 0x0001
+			SET Y, A
+			ADD Y, 1
+			SET [0xa000], Y
 :__malloc__allocate_1
 			IFE X, A
 				SET PC, __malloc__allocate_2
@@ -50,15 +51,15 @@
 			ADD J, A
 			SUB X, A
 			SUB X, 1
-			SET [0x9001+J], X
+			SET [0xa001+J], X
 			SET PC, __malloc__allocate_3
 :__malloc__allocate_2
 			ADD I, X
-			ADD [0x9000+J], [0x9000+I]
+			ADD [0xa000+J], [0xa000+I]
 			SUB I, X
 :__malloc__allocate_3
 			SET A, I
-			ADD A, 0x9001
+			ADD A, 0xa001
 			SET J, POP
 			SET I, POP
 			SET Z, POP

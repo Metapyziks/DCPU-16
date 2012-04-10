@@ -3,11 +3,15 @@
 
 			SET I, 0
 :start
-			IFE [0x8200], 0x00
+			SET J, [keypointer]
+			ADD J, 0x8400
+			SET A, [J]
+			IFE A, 0x00
 				SET PC, start
 			
-			SET A, [0x8200]
-			SET [0x8200], 0x00
+			SET [J], 0
+			ADD [keypointer], 1
+			AND [keypointer], 0xf
 			
 			IFE A, 0x8
 				SET PC, backspace
@@ -46,3 +50,6 @@
 				SET I, 0
 			
 			SET PC, start
+			
+:keypointer
+			DAT 0
