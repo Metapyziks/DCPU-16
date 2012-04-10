@@ -46,8 +46,18 @@ namespace DCPU16.Assembler
         private static String[] stInputPaths;
         private static String stOutputDir;
 
-        private static bool stPrint = true;
-        private static bool stCFormat = true;
+        private static bool stPrint =
+#if DEBUG
+            true;
+#else
+            false;
+#endif
+        private static bool stCFormat =
+#if DEBUG
+            true;
+#else
+            false;
+#endif
 
         static void Main( String[] args )
         {

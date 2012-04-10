@@ -42,7 +42,12 @@ namespace DCPU16.Emulator
         private static int stScreenBufferLoc = 0x8000;
         private static int stKeyboardLoc = 0x8400;
         private static String stCodePath;
-        private static bool stMemDump = true;
+        private static bool stMemDump =
+#if DEBUG
+            true;
+#else
+            false;
+#endif
 
         private static DCPU16Emulator myCPU;
 
