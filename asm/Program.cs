@@ -43,12 +43,13 @@ namespace DCPU16.Assembler
 :width		dat 0x20
 :height		dat 0x10";
         
-        private static string[] stInputPaths;
-        private static string stOutputDir;
+        private static String[] stInputPaths;
+        private static String stOutputDir;
 
         private static bool stPrint = true;
+        private static bool stCFormat = true;
 
-        static void Main( string[] args )
+        static void Main( String[] args )
         {
             if ( !ParseArgs( args ) )
                 return;
@@ -137,6 +138,30 @@ namespace DCPU16.Assembler
                                 stream.WriteByte( (byte) ( output[ i ] & 0xff ) );
                             }
                         }
+
+                        outPath += ".txt";
+
+                        String nl = Environment.NewLine;
+                        using ( FileStream stream = new FileStream( outPath, FileMode.Create, FileAccess.Write ) )
+                        {
+                            using ( StreamWriter writer = new StreamWriter( stream ) )
+                            {
+                                writer.Write( "{" + nl + "    " );
+                                for ( int i = 0; i < output.Length; ++i )
+                                {
+                                    writer.Write( "0x" + output[ i ].ToString( "X4" ).ToLower() );
+
+                                    if ( i < output.Length - 1 )
+                                    {
+                                        writer.Write( ", " );
+
+                                        if ( i % 8 == 7 )
+                                            writer.Write( nl + "    " );
+                                    }
+                                }
+                                writer.Write( nl + "}" + nl );
+                            }
+                        }
                     }
                 }
             }
@@ -148,9 +173,9 @@ namespace DCPU16.Assembler
             }
         }
 
-        static bool ParseArgs( string[] args )
+        static bool ParseArgs( String[] args )
         {
-            List<String> inputPaths = new List<string>();
+            List<String> inputPaths = new List<String>();
 
             for ( int i = 0; i < args.Length; ++i )
             {
@@ -161,6 +186,9 @@ namespace DCPU16.Assembler
                     {
                         case "-print":
                             stPrint = true;
+                            break;
+                        case "-cform":
+                            stCFormat = true;
                             break;
                         case "-outdir":
                             if( ++i < args.Length )

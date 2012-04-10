@@ -1,0 +1,17 @@
+			; Hello world for DCPU-16
+			; By Metapyziks
+
+			SET I, 0					; Initialise loop
+:nextchar
+			IFE [data+I], 0				; If we have reached the end of the string
+				SET PC, end				; Goto the end
+			
+            SET A, [data+I]				; Load the next character
+			BOR A, 0x0300				; Set the colour to white
+            SET [0x8000+I], A			; Set the value in video memory
+            ADD I, 1					; Increment the loop
+            SET PC, nextchar			; Loop back to do the next character
+:data       
+			DAT "Hello world!", 0		; Null terminated string to print
+:end
+			SET PC, end					; Hang forever

@@ -1,0 +1,48 @@
+			; Key input test
+			; By Metapyziks
+
+			SET I, 0
+:start
+			IFE [0x8200], 0x00
+				SET PC, start
+			
+			SET A, [0x8200]
+			SET [0x8200], 0x00
+			
+			IFE A, 0x8
+				SET PC, backspace
+			
+			IFE A, 0xd
+				SET PC, return
+			
+			IFE A, 0x7f
+				SET PC, start
+			
+			IFG 0x20, A
+				SET PC, start
+			
+			BOR A, 0x0300
+			SET [0x8000+I], A
+			ADD I, 1
+			
+			IFE I, 0x200
+				SET I, 0
+			
+			SET PC, start
+:backspace
+			IFE I, 0
+				SET PC, start
+			
+			SUB I, 1
+			SET [0x8000+I], 0x0000
+			
+			SET PC, start
+:return
+			DIV I, 0x20
+			MUL I, 0x20
+			ADD I, 0x20
+			
+			IFE I, 0x200
+				SET I, 0
+			
+			SET PC, start

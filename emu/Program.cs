@@ -11,9 +11,19 @@ namespace DCPU16.Emulator
     {
         private static readonly ushort[] stDefaultProgram =
         {
-            0x8061, 0x81ec, 0x8200, 0x7dc1, 0x0001, 0x7801, 0x8200, 0x81e1,
-            0x8200, 0x7c0a, 0x0300, 0x0161, 0x8000, 0x8462, 0x7c6c, 0x0200,
-            0x8061, 0x7dc1, 0x0001
+            0x81e1, 0x8fff, 0x7de1, 0x9000, 0x4000, 0x7dc1, 0x0043, 0x0da1, 
+            0x11a1, 0x15a1, 0x19a1, 0x1da1, 0x8061, 0x8071, 0x7831, 0x8fff, 
+            0x843c, 0x7dc1, 0x0021, 0x5831, 0x9000, 0x1841, 0x0c42, 0x0c51, 
+            0x806e, 0x8452, 0x11fe, 0x4000, 0x8452, 0x005e, 0x7dc1, 0x0025, 
+            0x0c62, 0x1871, 0x0c62, 0x7dc1, 0x0013, 0x806c, 0x7dc1, 0x002c, 
+            0x0172, 0x9000, 0x7dc1, 0x0032, 0x85e1, 0x8999, 0x01e1, 0x9000, 
+            0x85e2, 0x9000, 0x003d, 0x7dc1, 0x003a, 0x0c62, 0x5972, 0x9000, 
+            0x9000, 0x0c63, 0x1801, 0x7c02, 0x9001, 0x6071, 0x6061, 0x6051, 
+            0x6041, 0x6031, 0x61c1, 0x9001, 0x7c10, 0x0007, 0x7d01, 0x0000, 
+            0xffff, 0x7d01, 0x0001, 0xdead, 0x7d01, 0x0002, 0xbeef, 0x7d01, 
+            0x0003, 0xffff, 0x8801, 0x7c10, 0x0007, 0x7d01, 0x0000, 0x1234, 
+            0x7d01, 0x0001, 0x5678, 0xc001, 0x7c10, 0x0007, 0x8061, 0x1881, 
+            0x8402, 0x8462, 0x1b0e, 0x7dc1, 0x005f, 0x0000
         };
 
         private static ConsoleColor[] stColours =
@@ -31,11 +41,12 @@ namespace DCPU16.Emulator
         private static int stScreenCols = 32;
         private static int stScreenBufferLoc = 0x8000;
         private static int stKeyboardLoc = 0x8200;
-        private static string stCodePath;
+        private static String stCodePath;
+        private static bool stMemDump = true;
 
         private static DCPU16Emulator myCPU;
 
-        static void Main( string[] args )
+        static void Main( String[] args )
         {
             if ( !ParseArgs( args ) )
                 return;
@@ -82,6 +93,44 @@ namespace DCPU16.Emulator
 
             while ( !myCPU.Exited )
                 myCPU.Step();
+
+            if ( stMemDump )
+            {
+                String nl = Environment.NewLine;
+                using ( FileStream stream = new FileStream( "memorydump.txt", FileMode.Create, FileAccess.Write ) )
+                {
+                    using ( StreamWriter writer = new StreamWriter( stream ) )
+                    {
+                        writer.Write( "// Internal Registers:" + nl );
+                        writer.Write( "  PC: " + myCPU.ProgramCounter.ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  SP: " + myCPU.StackPointer.ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "   O: " + myCPU.Overflow.ToString( "X4" ).ToLower() + nl + nl );
+
+                        writer.Write( "// General Registers:" + nl );
+                        writer.Write( "  A: " + myCPU.GetRegister( Register.A ).ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  B: " + myCPU.GetRegister( Register.B ).ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  C: " + myCPU.GetRegister( Register.C ).ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  X: " + myCPU.GetRegister( Register.X ).ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  Y: " + myCPU.GetRegister( Register.Y ).ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  Z: " + myCPU.GetRegister( Register.Z ).ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  I: " + myCPU.GetRegister( Register.I ).ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  J: " + myCPU.GetRegister( Register.J ).ToString( "X4" ).ToLower() + nl + nl );
+
+                        writer.Write( "// Memory Dump:" + nl );
+
+                        for ( int i = 0; i < 0x10000; ++i )
+                        {
+                            if ( i % 16 == 0 )
+                                writer.Write( i.ToString( "X4" ).ToLower() + ": " );
+
+                            writer.Write( myCPU.GetMemory( i ).ToString( "X4" ).ToLower() + " " );
+
+                            if ( i % 16 == 15 )
+                                writer.Write( nl );
+                        }
+                    }
+                }
+            }
         }
 
         static void InputThreadEntry()
@@ -108,7 +157,7 @@ namespace DCPU16.Emulator
             }
         }
 
-        static bool ParseArgs( string[] args )
+        static bool ParseArgs( String[] args )
         {
             for ( int i = 0; i < args.Length; ++i )
             {
@@ -144,6 +193,9 @@ namespace DCPU16.Emulator
                                 Console.WriteLine( "Invalid value for argument \"" + arg + "\"" );
                                 return false;
                             }
+                            break;
+                        case "-memdump":
+                            stMemDump = true;
                             break;
                         default:
                             Console.WriteLine( "Invalid argument \"" + arg + "\"" );

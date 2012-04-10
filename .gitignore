@@ -3,5 +3,8 @@ DCPU-16.suo
 dcpu16/obj
 emu/obj
 asm/obj
+cmp/obj
 bin
 testasm/*.dcpu16
+testasm/*.dcpu16.txt
+testasm/memorydump.txt

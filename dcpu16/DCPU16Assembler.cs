@@ -5,63 +5,63 @@ using System.Text;
 
 namespace DCPU16
 {
-    public class AssemblerException : Exception
-    {
-        public readonly ushort Line;
-
-        public AssemblerException( ushort line, String message )
-            : base( message + "\n  at Line: " + ( line + 1 ) )
-        {
-            Line = line;
-        }
-    }
-
-    public class InvalidOpcodeException : AssemblerException
-    {
-        public readonly String Opcode;
-
-        public InvalidOpcodeException( ushort line, String opcode )
-            : base( line, "An invalid operator code was encountered: \"" + opcode + "\"" )
-        {
-            Opcode = opcode;
-        }
-    }
-
-    public class InvalidValueException : AssemblerException
-    {
-        public readonly String Value;
-
-        public InvalidValueException( ushort line, String value )
-            : base( line, "An invalid value was encountered: \"" + value + "\"" )
-        {
-            Value = value;
-        }
-    }
-
-    public class InvalidLabelException : AssemblerException
-    {
-        public readonly String Label;
-
-        public InvalidLabelException( ushort line, String label )
-            : base( line, "An invalid label was encountered: \"" + label + "\"" )
-        {
-            Label = label;
-        }
-    }
-
-    public class InvalidLiteralException : AssemblerException
-    {
-        public readonly String Literal;
-
-        public InvalidLiteralException( ushort line, String literal )
-            : base( line, "An invalid literal was encountered: \"" + literal + "\"" )
-        {
-            Literal = literal;
-        }
-    }
-
     public static class DCPU16Assembler
     {
+        public class AssemblerException : Exception
+        {
+            public readonly ushort Line;
+
+            public AssemblerException( ushort line, String message )
+                : base( message + "\n  at Line: " + ( line + 1 ) )
+            {
+                Line = line;
+            }
+        }
+
+        public class InvalidOpcodeException : AssemblerException
+        {
+            public readonly String Opcode;
+
+            public InvalidOpcodeException( ushort line, String opcode )
+                : base( line, "An invalid operator code was encountered: \"" + opcode + "\"" )
+            {
+                Opcode = opcode;
+            }
+        }
+
+        public class InvalidValueException : AssemblerException
+        {
+            public readonly String Value;
+
+            public InvalidValueException( ushort line, String value )
+                : base( line, "An invalid value was encountered: \"" + value + "\"" )
+            {
+                Value = value;
+            }
+        }
+
+        public class InvalidLabelException : AssemblerException
+        {
+            public readonly String Label;
+
+            public InvalidLabelException( ushort line, String label )
+                : base( line, "An invalid label was encountered: \"" + label + "\"" )
+            {
+                Label = label;
+            }
+        }
+
+        public class InvalidLiteralException : AssemblerException
+        {
+            public readonly String Literal;
+
+            public InvalidLiteralException( ushort line, String literal )
+                : base( line, "An invalid literal was encountered: \"" + literal + "\"" )
+            {
+                Literal = literal;
+            }
+        }
+
         private abstract class Value
         {
             public ushort Line { get; private set; }
@@ -85,7 +85,7 @@ namespace DCPU16
                 Disassembled = str;
             }
 
-            public override string ToString()
+            public override String ToString()
             {
                 return Disassembled;
             }
@@ -104,7 +104,7 @@ namespace DCPU16
             {
                 if ( str.Contains( "+" ) )
                 {
-                    string[] split = str.Split( '+' );
+                    String[] split = str.Split( '+' );
                     split[ 0 ] = split[ 0 ].Trim();
                     split[ 1 ] = split[ 1 ].Trim();
 
@@ -138,7 +138,7 @@ namespace DCPU16
                 }
             }
 
-            public override void ResolveLabel( Dictionary<string, ushort> labels )
+            public override void ResolveLabel( Dictionary<String, ushort> labels )
             {
                 if ( Label != null )
                 {
@@ -197,7 +197,7 @@ namespace DCPU16
                 SetDisassembled( Type.ToString().ToUpper() );
             }
 
-            public override void ResolveLabel( Dictionary<string, ushort> labels )
+            public override void ResolveLabel( Dictionary<String, ushort> labels )
             {
                 return;
             }
@@ -242,7 +242,7 @@ namespace DCPU16
                 }
             }
 
-            public override void ResolveLabel( Dictionary<string, ushort> labels )
+            public override void ResolveLabel( Dictionary<String, ushort> labels )
             {
                 if ( Label != null )
                 {
@@ -360,7 +360,7 @@ namespace DCPU16
         public static ushort[] Assemble( String str, ushort wordOffset = 0x0000 )
         {
             List<Instruction> instructions = new List<Instruction>();
-            Dictionary<String, ushort> labels = new Dictionary<string, ushort>();
+            Dictionary<String, ushort> labels = new Dictionary<String, ushort>();
             Instruction next;
             int offset = 0, words = 0;
             while ( ( next = ReadInstruction( str, ref offset, (ushort) ( words + wordOffset ), labels ) ) != null )

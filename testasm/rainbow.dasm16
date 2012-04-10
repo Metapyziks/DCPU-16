@@ -1,0 +1,35 @@
+			; Rainbow display test
+			; By Metapyziks
+
+			SET X, 0
+:xloop
+			SET Y, 0
+:yloop
+			SET C, X
+			DIV C, 2
+			SET A, C
+			SHL A, 0x4
+			ADD A, Y
+			SHL A, 0x8
+			SET C, X
+			AND C, 0x1
+			ADD A, [chars+C]
+			
+			SET B, Y
+			MUL B, [width]
+			ADD B, X
+			SET [0x8000+b], A
+			
+			ADD Y, 1
+			IFN Y, [height]
+				SET PC, yloop
+				
+			ADD X, 1
+			IFN X, [width]
+				SET PC, xloop
+:end
+			SET PC, end
+
+:chars		DAT 0x01, 0x02
+:width		DAT 0x20
+:height		DAT 0x10
