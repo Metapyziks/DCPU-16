@@ -105,7 +105,8 @@ namespace DCPU16.Emulator
             while ( !myCPU.Exited )
             {
                 cycles += myCPU.Step();
-                Thread.Sleep( Math.Max( 0, (int) ( ( cycles * 1000 / stCycleFreq ) - timer.ElapsedMilliseconds ) ) );
+                if ( stCycleFreq > 0 )
+                    Thread.Sleep( Math.Max( 0, (int) ( ( cycles * 1000 / stCycleFreq ) - timer.ElapsedMilliseconds ) ) );
             }
 
             if ( stMemDump )
