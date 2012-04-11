@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Threading;
+using System.Diagnostics;
 
 namespace DCPU16.Emulator
 {
@@ -41,6 +42,7 @@ namespace DCPU16.Emulator
         private static int stScreenCols = 32;
         private static int stScreenBufferLoc = 0x8000;
         private static int stKeyboardLoc = 0x8400;
+        private static int stCycleFreq = 100000;
         private static String stCodePath;
         private static bool stMemDump =
 #if DEBUG
@@ -96,8 +98,15 @@ namespace DCPU16.Emulator
             Thread inputThread = new Thread( InputThreadEntry );
             inputThread.Start();
 
+            long cycles = 0;
+            Stopwatch timer = new Stopwatch();
+            timer.Start();
+
             while ( !myCPU.Exited )
-                myCPU.Step();
+            {
+                cycles += myCPU.Step();
+                Thread.Sleep( Math.Max( 0, (int) ( ( cycles * 1000 / stCycleFreq ) - timer.ElapsedMilliseconds ) ) );
+            }
 
             if ( stMemDump )
             {
@@ -203,6 +212,13 @@ namespace DCPU16.Emulator
                             break;
                         case "-keyloc":
                             if ( !int.TryParse( args[ ++i ], out stKeyboardLoc ) )
+                            {
+                                Console.WriteLine( "Invalid value for argument \"" + arg + "\"" );
+                                return false;
+                            }
+                            break;
+                        case "-freq":
+                            if ( !int.TryParse( args[ ++i ], out stCycleFreq ) )
                             {
                                 Console.WriteLine( "Invalid value for argument \"" + arg + "\"" );
                                 return false;
