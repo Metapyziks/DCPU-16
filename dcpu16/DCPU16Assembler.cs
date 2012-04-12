@@ -444,6 +444,7 @@ namespace DCPU16
                                 else
                                     args[ 0 ] += c;
                             }
+                            ++offset;
                             if ( args[ 0 ].Length == 0 || !File.Exists( args[ 0 ] ) )
                                 throw new AssemblerException( GetLineNumber( str, offset ), "Cannot include file \"" + args[ 0 ] + "\", file does not exist" );
                             String nl = Environment.NewLine;

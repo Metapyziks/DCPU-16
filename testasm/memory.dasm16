@@ -7,7 +7,7 @@
 .const memmask 	0x3fff
 			
 			SET [memloc], memlen
-			SET PC, init
+			SET PC, __skip__
 :malloc
 			SET PUSH, B
 			SET PUSH, C
@@ -118,90 +118,5 @@
 			SET [memloc+A], B
 			ADD A, 1
 			SET PC, __memset__loop
-:init
-			SET A, 0x08
-			JSR malloc
-			IFE A, 0xffff
-				SET PC, end
-			SET X, A
-			SET B, 0x1111
-			SET C, 0x08
-			JSR memset
+:__skip__
 			
-			SET A, 0x10
-			JSR malloc
-			IFE A, 0xffff
-				SET PC, end
-			SET Y, A
-			SET B, 0x2222
-			SET C, 0x10
-			JSR memset
-			
-			SET A, 0x10
-			JSR malloc
-			IFE A, 0xffff
-				SET PC, end
-			SET Z, A
-			SET B, 0x3333
-			SET C, 0x10
-			JSR memset
-			
-			SET A, 0x08
-			JSR malloc
-			IFE A, 0xffff
-				SET PC, end
-			SET I, A
-			SET B, 0x4444
-			SET C, 0x08
-			JSR memset
-			
-			SET A, Y
-			JSR free
-			
-			SET A, 0x08
-			JSR malloc
-			IFE A, 0xffff
-				SET PC, end
-			SET Y, A
-			SET B, 0x5555
-			SET C, 0x08
-			JSR memset
-			
-			SET A, Z
-			JSR free
-			
-			SET A, 0x10
-			JSR malloc
-			IFE A, 0xffff
-				SET PC, end
-			SET Z, A
-			SET B, 0x6666
-			SET C, 0x10
-			JSR memset
-			
-			SET A, X
-			JSR free
-			
-			SET A, 0x10
-			JSR malloc
-			IFE A, 0xffff
-				SET PC, end
-			SET X, A
-			SET B, 0x7777
-			SET C, 0x10
-			JSR memset
-			
-			SET A, I
-			JSR free
-			
-			SET A, 0x08
-			JSR malloc
-			IFE A, 0xffff
-				SET PC, end
-			SET I, A
-			SET B, 0x8888
-			SET C, 0x08
-			JSR memset
-:end
-			DAT 0x0000
-			SET PC, end
