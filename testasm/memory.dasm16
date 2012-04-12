@@ -1,203 +1,202 @@
 			; Memory allocation test
 			; By Metapyziks
 			
-			SET [0x9fff], 0x0000
 			SET [0xa000], 0x4000
 			SET PC, init
-:__malloc__
+:malloc
+			SET PUSH, B
+			SET PUSH, C
 			SET PUSH, X
 			SET PUSH, Y
-			SET PUSH, Z
-			SET PUSH, I
-			SET PUSH, J
-			SET I, 0
-			SET J, 0
-			SET X, [0x9fff]
-			IFE X, 0x0001
-				SET PC, __malloc__filled
-:__malloc__empty
-			SET X, [0xa000+I]
-			SET Y, I
-			ADD Y, X
-			SET Z, X
-			IFG I, 0
-				ADD Z, 1
-			IFG 0x4000, X
-				ADD Z, 1
-			IFG Z, A
-				SET PC, __malloc__allocate
-			ADD I, X
-:__malloc__filled
-			SET X, [0xa000+I]
-			SET J, I
-			ADD I, X
-			SET PC, __malloc__empty
-:__malloc__allocate
-			IFE I, 0
-				SET PC, __malloc__allocate_0
-			ADD [0xa000+J], A
-			SUB I, 1
-			ADD X, 1
-			SET PC, __malloc__allocate_1
-:__malloc__allocate_0
-			SET [0x9fff], 0x0001
-			SET Y, A
-			ADD Y, 1
-			SET [0xa000], Y
-:__malloc__allocate_1
-			IFE X, A
-				SET PC, __malloc__allocate_2
-			SET J, I
-			ADD J, A
-			SUB X, A
-			SUB X, 1
-			SET [0xa001+J], X
-			SET PC, __malloc__allocate_3
-:__malloc__allocate_2
-			ADD I, X
-			SET Y, [0xa000+I]
-			SUB Y, 1
-			ADD [0xa000+J], Y
-			SUB I, X
-:__malloc__allocate_3
-			SET A, I
+			SET X, 0
+:__malloc__loop
+			IFG X, 0x3fff
+				SET PC, __malloc__fail
+			SET B, [0xa000+X]
+			SET C, B
+			AND C, 0x8000
+			AND B, 0x7fff
+			IFN C, 0x0000
+				SET PC, __malloc__loopiter
+			IFG A, B
+				SET PC, __malloc__loopiter
+			IFE A, B
+				SET PC, __malloc__loopiter
+			SET PC, __malloc__loopend
+:__malloc__loopiter
+			ADD X, B
+			SET PC, __malloc__loop
+:__malloc__loopend
+			ADD A, 2
+			IFG B, A
+				SUB A, 1
+			BOR A, 0x8000
+			SET [0xa000+X], A
+			AND A, 0x7999
+			ADD A, 1
+			IFG A, B
+				SET PC, __malloc__getaddr
+			SUB A, 1
+			SET Y, X
+			ADD Y, A
+			SUB B, A
+			SET [0xa000+Y], B
+:__malloc__getaddr
+			SET A, X
 			ADD A, 0xa001
-			SET J, POP
-			SET I, POP
-			SET Z, POP
+			SET PC, __malloc__return
+:__malloc__fail
+			SET A, 0xffff
+:__malloc__return
 			SET Y, POP
 			SET X, POP
+			SET C, POP
+			SET B, POP
 			SET PC, POP
-:__free__
+:free
+			SET PUSH, B
+			SET PUSH, C
 			SET PUSH, X
 			SET PUSH, Y
 			SET PUSH, Z
-			SET PUSH, I
-			SET PUSH, J
-			SUB A, 0xa000
-			SET I, 0
-			SET J, 0
-			SET X, [0x9fff]
-			IFE X, 0x0001
-				SET PC, __free__filled
-:__free__empty
-			SET X, [0xa000+I]
-			SET J, I
-			ADD I, X
-:__free__filled
-			SET X, [0xa000+I]
-			SET Y, I
-			ADD Y, X
-			IFG Y, A
-				SET PC, __free__deallocate
-			ADD I, X
-			SET PC, __free__empty
-:__free__deallocate
-			SET Z, A
-			SUB Z, 1
-			IFE Z, I
-				SET PC, __free__deallocate__0
-			ADD Z, 1
+			SET X, 0
+			SUB A, 0xa001
+:__free__loop
+			SET B, [0xa000+X]
+			AND B, 0x7fff
+			SET Z, X
 			ADD Z, B
-			IFE Y, Z
-				SET PC, __free__deallocate__2
-			SET J, A
-			SUB A, I
-			SET [0xa000+I], A
-			SET Y, B
-			SUB Y, 1
-			SET [0xa000+J], Y
-			SUB X, A
-			SUB X, B
-			ADD X, 1
-			ADD J, B
-			SUB J, 1
-			SET [0xa000+J], X
-			SET PC, __free__deallocate__3
-:__free__deallocate__0
-			IFE I, 0
-				SET [0x9fff], 0x0000
-			IFE I, 0
-				SET [0xa000], 0x0000
-			ADD Z, B
-			ADD Z, 1
-			IFE Y, Z
-				SET PC, __free__deallocate__1
-			ADD [0xa000+J], B
-			ADD J, B
-			SUB X, B
-			SET [0xa000+J], X
-			SET PC, __free__deallocate__3
-:__free__deallocate__1
-			ADD [0xa000+J], X
-			ADD I, X
-			ADD [0xa000+J], [0xa000+I]
-			SET PC, __free__deallocate__3
-:__free__deallocate__2
-			SET J, I
-			ADD J, X
-			SET Y, [0xa000+J]
-			ADD Y, B
-			SUB X, B
-			SET [0xa000+I], X
-			ADD I, X
-			SET [0xa000+I], Y
-:__free__deallocate__3
-			SET J, POP
-			SET I, POP
+			IFE X, A
+				SET PC, __free__loopend
+			IFG X, A
+				SET PC, __free__return
+			SET Y, X
+			SET X, Z
+			IFG 0x4000, X
+				SET PC, __free__loop
+			SET PC, __free__return
+:__free__loopend
+			IFG 0x4000, Z
+				JSR __free__mergeright
+			IFG X, 0
+				JSR __free__mergeleft
+			SET [0xa000+X], B
+			SET PC, __free__return
+:__free__mergeright
+			SET C, [0xa000+Z]
+			AND C, 0x8000
+			IFE C, 0x0000
+				ADD B, [0xa000+Z]
+			SET PC, POP
+:__free__mergeleft
+			SET C, [0xa000+Y]
+			AND C, 0x8000
+			IFN C, 0x0000
+				SET PC, POP
+			ADD B, [0xa000+Y]
+			SET X, Y
+			SET PC, POP
+:__free__return
 			SET Z, POP
 			SET Y, POP
 			SET X, POP
+			SET C, POP
+			SET B, POP
 			SET PC, POP
+:memset
+			SUB A, 0xa000
+			ADD C, A
+			SUB C, 1
+:__memset__loop
+			IFG A, C
+				SET PC, POP
+			SET [0xa000+A], B
+			ADD A, 1
+			SET PC, __memset__loop
 :init
-			SET A, 0x04
-			JSR __malloc__
+			SET A, 0x08
+			JSR malloc
+			IFE A, 0xffff
+				SET PC, end
 			SET X, A
-			SET [A+0], 0xffff
-			SET [A+1], 0xdead
-			SET [A+2], 0xbeef
-			SET [A+3], 0xffff
-			
-			SET A, 0x02
-			JSR __malloc__
-			SET [A+0], 0x1234
-			SET [A+1], 0x5678
+			SET B, 0x1111
+			SET C, 0x08
+			JSR memset
 			
 			SET A, 0x10
-			JSR __malloc__
-			SET I, 0
-:loop
-			SET [A], I
-			ADD A, 1
-			ADD I, 1
-			IFG 0x10, I
-				SET PC, loop
+			JSR malloc
+			IFE A, 0xffff
+				SET PC, end
+			SET Y, A
+			SET B, 0x2222
+			SET C, 0x10
+			JSR memset
 			
-			SET A, X
-			SET B, 0x12
-			JSR __free__
+			SET A, 0x10
+			JSR malloc
+			IFE A, 0xffff
+				SET PC, end
+			SET Z, A
+			SET B, 0x3333
+			SET C, 0x10
+			JSR memset
 			
 			SET A, 0x08
-			JSR __malloc__
-			SET [A+0], 0xffff
-			SET [A+1], 0xffff
-			SET [A+2], 0xffff
-			SET [A+3], 0xffff
-			SET [A+4], 0xffff
-			SET [A+5], 0xffff
-			SET [A+6], 0xffff
-			SET [A+7], 0xffff
-			SET A, 0xa
-			JSR __malloc__
-			SET [A+0], 0xeeee
-			SET [A+1], 0xeeee
-			SET [A+2], 0xeeee
-			SET [A+3], 0xeeee
-			SET [A+4], 0xeeee
-			SET [A+5], 0xeeee
-			SET [A+6], 0xeeee
-			SET [A+7], 0xeeee
-			SET [A+8], 0xeeee
-			SET [A+9], 0xeeee
+			JSR malloc
+			IFE A, 0xffff
+				SET PC, end
+			SET I, A
+			SET B, 0x4444
+			SET C, 0x08
+			JSR memset
+			
+			SET A, Y
+			JSR free
+			
+			SET A, 0x08
+			JSR malloc
+			IFE A, 0xffff
+				SET PC, end
+			SET Y, A
+			SET B, 0x5555
+			SET C, 0x08
+			JSR memset
+			
+			SET A, Z
+			JSR free
+			
+			SET A, 0x10
+			JSR malloc
+			IFE A, 0xffff
+				SET PC, end
+			SET Z, A
+			SET B, 0x6666
+			SET C, 0x10
+			JSR memset
+			
+			SET A, X
+			JSR free
+			
+			SET A, 0x10
+			JSR malloc
+			IFE A, 0xffff
+				SET PC, end
+			SET X, A
+			SET B, 0x7777
+			SET C, 0x10
+			JSR memset
+			
+			SET A, I
+			JSR free
+			
+			SET A, 0x08
+			JSR malloc
+			IFE A, 0xffff
+				SET PC, end
+			SET I, A
+			SET B, 0x8888
+			SET C, 0x08
+			JSR memset
 :end
+			DAT 0x0000
 			SET PC, end
