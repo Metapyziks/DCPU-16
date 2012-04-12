@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.IO;
 
 namespace DCPU16
 {
@@ -360,20 +362,24 @@ namespace DCPU16
         public static ushort[] Assemble( String str, ushort wordOffset = 0x0000 )
         {
             List<Instruction> instructions = new List<Instruction>();
+            Dictionary<String, ushort> consts = new Dictionary<String, ushort>();
             Dictionary<String, ushort> labels = new Dictionary<String, ushort>();
             Instruction next;
             int offset = 0, words = 0;
-            while ( ( next = ReadInstruction( str, ref offset, (ushort) ( words + wordOffset ), labels ) ) != null )
+            while ( ( next = ReadInstruction( ref str, ref offset, (ushort) ( words + wordOffset ), consts, labels ) ) != null )
             {
                 instructions.Add( next );
                 words += next.Length;
             }
 
+            foreach ( KeyValuePair<String, ushort> keyVal in labels )
+                consts.Add( keyVal.Key, keyVal.Value );
+
             ushort[] buffer = new ushort[ words ];
             int i = 0;
             foreach ( Instruction ins in instructions )
             {
-                ins.ResolveLabels( labels );
+                ins.ResolveLabels( consts );
                 foreach ( ushort word in ins.Assembled )
                     buffer[ i++ ] = word;
             }
@@ -381,7 +387,7 @@ namespace DCPU16
             return buffer;
         }
 
-        private static Instruction ReadInstruction( String str, ref int offset, ushort words, Dictionary<String, ushort> labels )
+        private static Instruction ReadInstruction( ref String str, ref int offset, ushort words, Dictionary<String, ushort> consts, Dictionary<String, ushort> labels )
         {
             String opString = null;
 
@@ -396,6 +402,56 @@ namespace DCPU16
                         label += str[ offset ];
 
                     labels.Add( label, words );
+                    SkipWhitespace( str, ref offset );
+                }
+
+                while ( offset < str.Length - 2 && str[ offset ] == '.' )
+                {
+                    String cmd = "";
+                    while ( ++offset < str.Length && ( char.IsLetterOrDigit( str[ offset ] ) || str[ offset ] == '_' ) )
+                        cmd += str[ offset ];
+
+                    String[] args;
+
+                    switch( cmd )
+                    {
+                        case "const":
+                            args = new String[ 2 ];
+                            SkipWhitespace( str, ref offset );
+                            args[ 0 ] = "";
+                            while ( offset < str.Length && ( char.IsLetterOrDigit( str[ offset ] ) || str[ offset ] == '_' ) )
+                                args[ 0 ] += str[ offset++ ];
+                            if ( args[ 0 ].Length == 0 || char.IsDigit( args[ 0 ][ 0 ] ) )
+                                throw new AssemblerException( GetLineNumber( str, offset ), "Invalid constant name \"" + args[ 0 ] + "\"" );
+                            SkipWhitespace( str, ref offset );
+                            args[ 1 ] = "";
+                            while ( offset < str.Length && char.IsLetterOrDigit( str[ offset ] ) )
+                                args[ 1 ] += str[ offset++ ];
+                            consts.Add( args[ 0 ], ParseNumber( GetLineNumber( str, offset ), args[ 1 ] ) );
+                            break;
+                        case "include":
+                            args = new String[ 2 ];
+                            SkipWhitespace( str, ref offset );
+                            if ( offset >= str.Length || str[ offset ] != '"' )
+                                throw new AssemblerException( GetLineNumber( str, offset ), "Invalid include path given, string expected" );
+                            args[ 0 ] = "";
+                            bool escaped = false;
+                            while ( ++offset < str.Length && ( str[ offset ] != '"' || escaped ) )
+                            {
+                                char c = str[ offset ];
+                                if ( !escaped && c == '\\' )
+                                    escaped = true;
+                                else
+                                    args[ 0 ] += c;
+                            }
+                            if ( args[ 0 ].Length == 0 || !File.Exists( args[ 0 ] ) )
+                                throw new AssemblerException( GetLineNumber( str, offset ), "Cannot include file \"" + args[ 0 ] + "\", file does not exist" );
+                            String nl = Environment.NewLine;
+                            str = str.Substring( 0, offset ) + nl + File.ReadAllText( args[ 0 ] ) + nl + str.Substring( offset, str.Length - offset );
+                            break;
+                        default:
+                            throw new AssemblerException( GetLineNumber( str, offset ), "Invalid command \"." + cmd + "\"" );
+                    }
                     SkipWhitespace( str, ref offset );
                 }
 

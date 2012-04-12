@@ -1,7 +1,12 @@
 			; Memory allocation test
 			; By Metapyziks
 			
-			SET [0xa000], 0x4000
+.const memloc 	0xa000
+.const meminit 	0xa001
+.const memlen 	0x4000
+.const memmask 	0x3fff
+			
+			SET [memloc], memlen
 			SET PC, init
 :malloc
 			SET PUSH, B
@@ -10,9 +15,9 @@
 			SET PUSH, Y
 			SET X, 0
 :__malloc__loop
-			IFG X, 0x3fff
+			IFG X, memmask
 				SET PC, __malloc__fail
-			SET B, [0xa000+X]
+			SET B, [memloc+X]
 			SET C, B
 			AND C, 0x8000
 			AND B, 0x7fff
@@ -31,7 +36,7 @@
 			IFG B, A
 				SUB A, 1
 			BOR A, 0x8000
-			SET [0xa000+X], A
+			SET [memloc+X], A
 			AND A, 0x7999
 			ADD A, 1
 			IFG A, B
@@ -40,10 +45,10 @@
 			SET Y, X
 			ADD Y, A
 			SUB B, A
-			SET [0xa000+Y], B
+			SET [memloc+Y], B
 :__malloc__getaddr
 			SET A, X
-			ADD A, 0xa001
+			ADD A, meminit
 			SET PC, __malloc__return
 :__malloc__fail
 			SET A, 0xffff
@@ -60,9 +65,9 @@
 			SET PUSH, Y
 			SET PUSH, Z
 			SET X, 0
-			SUB A, 0xa001
+			SUB A, meminit
 :__free__loop
-			SET B, [0xa000+X]
+			SET B, [memloc+X]
 			AND B, 0x7fff
 			SET Z, X
 			ADD Z, B
@@ -72,28 +77,28 @@
 				SET PC, __free__return
 			SET Y, X
 			SET X, Z
-			IFG 0x4000, X
+			IFG memlen, X
 				SET PC, __free__loop
 			SET PC, __free__return
 :__free__loopend
-			IFG 0x4000, Z
+			IFG memlen, Z
 				JSR __free__mergeright
 			IFG X, 0
 				JSR __free__mergeleft
-			SET [0xa000+X], B
+			SET [memloc+X], B
 			SET PC, __free__return
 :__free__mergeright
-			SET C, [0xa000+Z]
+			SET C, [memloc+Z]
 			AND C, 0x8000
 			IFE C, 0x0000
-				ADD B, [0xa000+Z]
+				ADD B, [memloc+Z]
 			SET PC, POP
 :__free__mergeleft
-			SET C, [0xa000+Y]
+			SET C, [memloc+Y]
 			AND C, 0x8000
 			IFN C, 0x0000
 				SET PC, POP
-			ADD B, [0xa000+Y]
+			ADD B, [memloc+Y]
 			SET X, Y
 			SET PC, POP
 :__free__return
@@ -104,13 +109,13 @@
 			SET B, POP
 			SET PC, POP
 :memset
-			SUB A, 0xa000
+			SUB A, memloc
 			ADD C, A
 			SUB C, 1
 :__memset__loop
 			IFG A, C
 				SET PC, POP
-			SET [0xa000+A], B
+			SET [memloc+A], B
 			ADD A, 1
 			SET PC, __memset__loop
 :init
