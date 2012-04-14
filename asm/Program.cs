@@ -153,27 +153,30 @@ namespace DCPU16.Assembler
                             }
                         }
 
-                        outPath += ".txt";
-
-                        String nl = Environment.NewLine;
-                        using ( FileStream stream = new FileStream( outPath, FileMode.Create, FileAccess.Write ) )
+                        if ( stCFormat )
                         {
-                            using ( StreamWriter writer = new StreamWriter( stream ) )
+                            outPath += ".txt";
+
+                            String nl = Environment.NewLine;
+                            using ( FileStream stream = new FileStream( outPath, FileMode.Create, FileAccess.Write ) )
                             {
-                                writer.Write( "{" + nl + "    " );
-                                for ( int i = 0; i < output.Length; ++i )
+                                using ( StreamWriter writer = new StreamWriter( stream ) )
                                 {
-                                    writer.Write( "0x" + output[ i ].ToString( "X4" ).ToLower() );
-
-                                    if ( i < output.Length - 1 )
+                                    writer.Write( "{" + nl + "    " );
+                                    for ( int i = 0; i < output.Length; ++i )
                                     {
-                                        writer.Write( ", " );
+                                        writer.Write( "0x" + output[ i ].ToString( "X4" ).ToLower() );
 
-                                        if ( i % 8 == 7 )
-                                            writer.Write( nl + "    " );
+                                        if ( i < output.Length - 1 )
+                                        {
+                                            writer.Write( ", " );
+
+                                            if ( i % 8 == 7 )
+                                                writer.Write( nl + "    " );
+                                        }
                                     }
+                                    writer.Write( nl + "}" + nl );
                                 }
-                                writer.Write( nl + "}" + nl );
                             }
                         }
                     }
