@@ -9,39 +9,40 @@ namespace DCPU16.Assembler
     class Program
     {
         private static readonly String stDefaultProgram = @"
-			; Rainbow display test
-			; By Metapyziks
+            ; Rainbow display test
+            ; By Metapyziks
 
-			set x, 0
+.define     vidloc 0x8000
+.define     vidwid 0x20
+.define     vidhei 0x20
+.define     char 'X'
+
+            set x, 0
 :xloop
-			set y, 0
+            set y, 0
 :yloop
-			set c, x
-			div c, 2
-			set a, c
-			shl a, 0x4
-			add a, y
-			shl a, 0x8
-			add a, [char]
-			
-			set b, y
-			mul b, [width]
-			add b, x
-			set [0x8000+b], a
-			
-			add y, 1
-			ifn y, [height]
-				set PC, yloop
-				
-			add x, 1
-			ifn x, [width]
-				set PC, xloop
+            set c, x
+            div c, 2
+            set a, c
+            shl a, 0x4
+            add a, y
+            shl a, 0x8
+            add a, char
+            
+            set b, y
+            mul b, vidwid
+            add b, x
+            set [vidloc+b], a
+            
+            add y, 1
+            ifn y, vidhei
+                set PC, yloop
+                
+            add x, 1
+            ifn x, vidwid
+                set PC, xloop
 :end
-			set PC, end
-
-:char		dat 'X'
-:width		dat 0x20
-:height		dat 0x10";
+            set PC, end";
         
         private static String[] stInputPaths;
         private static String stOutputDir;
@@ -73,35 +74,38 @@ namespace DCPU16.Assembler
 
                 if ( stInputPaths.Length == 0 )
                 {
+#if DEBUG
+                    output = DCPU16Assembler.AssembleString( stDefaultProgram );
+#else
                     try
                     {
-                        output = DCPU16Assembler.Assemble( stDefaultProgram );
+                        output = DCPU16Assembler.AssembleString( stDefaultProgram );
                     }
                     catch ( Exception e )
                     {
                         ex = e;
                     }
-                }
-                else if ( File.Exists( stInputPaths[ f ] ) )
-                {
-                    try
-                    {
-                        output = DCPU16Assembler.Assemble( File.ReadAllText( stInputPaths[ f ] ) );
-                    }
-                    catch ( Exception e )
-                    {
-                        ex = e;
-                    }
+#endif
                 }
                 else
                 {
-                    Console.WriteLine( "File \"" + stInputPaths[ f ] + "\" does not exist!" );
-                    break;
+#if DEBUG
+                        output = DCPU16Assembler.AssembleFile( stInputPaths[ f ] );
+#else
+                    try
+                    {
+                        output = DCPU16Assembler.AssembleFile( stInputPaths[ f ] );
+                    }
+                    catch ( Exception e )
+                    {
+                        ex = e;
+                    }
+#endif
                 }
 
                 if ( ex != null )
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.ForegroundColor = ConsoleColor.Red;
                     if ( stInputPaths.Length > 0 )
                         Console.WriteLine( "Error while assembling " + stInputPaths[ f ] + ":" );
                     else

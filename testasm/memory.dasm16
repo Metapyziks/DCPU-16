@@ -1,37 +1,37 @@
 			; Memory allocation test
 			; By Metapyziks
 			
-.const memloc 	0xa000
-.const meminit 	0xa001
-.const memlen 	0x4000
-.const memmask 	0x3fff
+.define 	memloc 		0xa000
+.define 	meminit 	0xa001
+.define 	memlen 		0x4000
+.define 	memmask 	0x3fff
 			
 			SET [memloc], memlen
-			SET PC, __skip__
+			SET PC, __memory__skip__
 :malloc
 			SET PUSH, B
 			SET PUSH, C
 			SET PUSH, X
 			SET PUSH, Y
 			SET X, 0
-:__malloc__loop
+::loop
 			IFG X, memmask
-				SET PC, __malloc__fail
+				SET PC, fail
 			SET B, [memloc+X]
 			SET C, B
 			AND C, 0x8000
 			AND B, 0x7fff
 			IFN C, 0x0000
-				SET PC, __malloc__loopiter
+				SET PC, loopiter
 			IFG A, B
-				SET PC, __malloc__loopiter
+				SET PC, loopiter
 			IFE A, B
-				SET PC, __malloc__loopiter
-			SET PC, __malloc__loopend
-:__malloc__loopiter
+				SET PC, loopiter
+			SET PC, loopend
+::loopiter
 			ADD X, B
-			SET PC, __malloc__loop
-:__malloc__loopend
+			SET PC, loop
+::loopend
 			ADD A, 2
 			IFG B, A
 				SUB A, 1
@@ -40,19 +40,19 @@
 			AND A, 0x7999
 			ADD A, 1
 			IFG A, B
-				SET PC, __malloc__getaddr
+				SET PC, getaddr
 			SUB A, 1
 			SET Y, X
 			ADD Y, A
 			SUB B, A
 			SET [memloc+Y], B
-:__malloc__getaddr
+::getaddr
 			SET A, X
 			ADD A, meminit
-			SET PC, __malloc__return
-:__malloc__fail
+			SET PC, return
+::fail
 			SET A, 0xffff
-:__malloc__return
+::return
 			SET Y, POP
 			SET X, POP
 			SET C, POP
@@ -66,34 +66,34 @@
 			SET PUSH, Z
 			SET X, 0
 			SUB A, meminit
-:__free__loop
+::loop
 			SET B, [memloc+X]
 			AND B, 0x7fff
 			SET Z, X
 			ADD Z, B
 			IFE X, A
-				SET PC, __free__loopend
+				SET PC, loopend
 			IFG X, A
-				SET PC, __free__return
+				SET PC, return
 			SET Y, X
 			SET X, Z
 			IFG memlen, X
-				SET PC, __free__loop
-			SET PC, __free__return
-:__free__loopend
+				SET PC, loop
+			SET PC, return
+::loopend
 			IFG memlen, Z
-				JSR __free__mergeright
+				JSR mergeright
 			IFG X, 0
-				JSR __free__mergeleft
+				JSR mergeleft
 			SET [memloc+X], B
-			SET PC, __free__return
-:__free__mergeright
+			SET PC, return
+::mergeright
 			SET C, [memloc+Z]
 			AND C, 0x8000
 			IFE C, 0x0000
 				ADD B, [memloc+Z]
 			SET PC, POP
-:__free__mergeleft
+::mergeleft
 			SET C, [memloc+Y]
 			AND C, 0x8000
 			IFN C, 0x0000
@@ -101,7 +101,7 @@
 			ADD B, [memloc+Y]
 			SET X, Y
 			SET PC, POP
-:__free__return
+::return
 			SET Z, POP
 			SET Y, POP
 			SET X, POP
@@ -112,11 +112,10 @@
 			SUB A, memloc
 			ADD C, A
 			SUB C, 1
-:__memset__loop
+::loop
 			IFG A, C
 				SET PC, POP
 			SET [memloc+A], B
 			ADD A, 1
-			SET PC, __memset__loop
-:__skip__
-			
+			SET PC, loop
+:__memory__skip__

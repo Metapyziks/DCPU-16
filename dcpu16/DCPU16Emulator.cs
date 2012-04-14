@@ -12,6 +12,12 @@ namespace DCPU16
         I = 0x6, J = 0x7
     }
 
+    public enum SpecialRegister : byte
+    {
+        POP = 0x18, PEEK = 0x19, PUSH = 0x1a,
+        SP  = 0x1b, PC   = 0x1c, O    = 0x1d
+    }
+
     public enum Opcode : byte
     {
         Dat = 0x0,
