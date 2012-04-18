@@ -7,7 +7,7 @@ using System.Reflection;
 
 namespace DCPU16
 {
-    public static class DCPU16Compiler
+    public static class DLANGCompiler
     {
         private static readonly String stPreamble = @"
             

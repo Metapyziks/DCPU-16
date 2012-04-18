@@ -75,11 +75,11 @@ namespace DCPU16.Assembler
                 if ( stInputPaths.Length == 0 )
                 {
 #if DEBUG
-                    output = DCPU16Assembler.AssembleString( stDefaultProgram );
+                    output = DASM16Assembler.AssembleString( stDefaultProgram ).Words;
 #else
                     try
                     {
-                        output = DCPU16Assembler.AssembleString( stDefaultProgram );
+                        output = DASM16Assembler.AssembleString( stDefaultProgram ).Words;
                     }
                     catch ( Exception e )
                     {
@@ -90,11 +90,11 @@ namespace DCPU16.Assembler
                 else
                 {
 #if DEBUG
-                        output = DCPU16Assembler.AssembleFile( stInputPaths[ f ] );
+                    output = DASM16Assembler.AssembleFile( stInputPaths[ f ] ).Words;
 #else
                     try
                     {
-                        output = DCPU16Assembler.AssembleFile( stInputPaths[ f ] );
+                        output = DASM16Assembler.AssembleFile( stInputPaths[ f ] ).Words;
                     }
                     catch ( Exception e )
                     {
