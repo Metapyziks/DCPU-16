@@ -7,7 +7,7 @@ namespace DCPU16
 {
     public class DASM16Instruction
     {
-        public readonly Opcode Opcode;
+        public readonly DCPU16Opcode Opcode;
 
         public readonly DASM16Value[] Values;
 
@@ -15,12 +15,12 @@ namespace DCPU16
         public ushort[] Words { get; private set; }
         public String Disassembled { get; private set; }
 
-        public DASM16Instruction( Opcode opcode )
+        public DASM16Instruction( DCPU16Opcode opcode )
         {
             Opcode = opcode;
         }
 
-        public DASM16Instruction( Opcode opcode, DASM16Value value )
+        public DASM16Instruction( DCPU16Opcode opcode, DASM16Value value )
             : this( opcode )
         {
             Values = new DASM16Value[] { value };
@@ -28,7 +28,7 @@ namespace DCPU16
             Length = (ushort) ( 1 + ( Values[ 0 ].Extended ? 1 : 0 ) );
         }
 
-        public DASM16Instruction( Opcode opcode, DASM16Value valueA, DASM16Value valueB )
+        public DASM16Instruction( DCPU16Opcode opcode, DASM16Value valueA, DASM16Value valueB )
             : this( opcode )
         {
             Values = new DASM16Value[] { valueA, valueB };
@@ -36,8 +36,8 @@ namespace DCPU16
             Length = (ushort) ( 1 + ( Values[ 0 ].Extended ? 1 : 0 ) + ( Values[ 1 ].Extended ? 1 : 0 ) );
         }
 
-        public DASM16Instruction( LiteralVal[] values )
-            : this( Opcode.Dat )
+        public DASM16Instruction( DASM16LiteralVal[] values )
+            : this( DCPU16Opcode.Dat )
         {
             Values = values;
             Length = (ushort) ( values.Length );
@@ -47,7 +47,7 @@ namespace DCPU16
         {
             Words = new ushort[ Length ];
 
-            if ( Opcode != Opcode.Dat )
+            if ( Opcode != DCPU16Opcode.Dat )
             {
                 if ( Values.Length > 0 )
                 {

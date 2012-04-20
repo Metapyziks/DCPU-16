@@ -5,20 +5,20 @@ using System.Text;
 
 namespace DCPU16
 {
-    public enum Register : byte
+    public enum DCPU16Register : byte
     {
         A = 0x0, B = 0x1, C = 0x2,
         X = 0x3, Y = 0x4, Z = 0x5,
         I = 0x6, J = 0x7
     }
 
-    public enum SpecialRegister : byte
+    public enum DCPU16SpecialRegister : byte
     {
         POP = 0x18, PEEK = 0x19, PUSH = 0x1a,
         SP  = 0x1b, PC   = 0x1c, O    = 0x1d
     }
 
-    public enum Opcode : byte
+    public enum DCPU16Opcode : byte
     {
         Dat = 0x0,
         Set = 0x1, 
@@ -33,10 +33,10 @@ namespace DCPU16
 
     public class RegisterChangedEventArgs : EventArgs
     {
-        public readonly Register Register;
+        public readonly DCPU16Register Register;
         public readonly ushort Value;
 
-        public RegisterChangedEventArgs( Register register, ushort value )
+        public RegisterChangedEventArgs( DCPU16Register register, ushort value )
         {
             Register = register;
             Value = value;
@@ -108,12 +108,12 @@ namespace DCPU16
             }
         }
 
-        public ushort GetRegister( Register register )
+        public ushort GetRegister( DCPU16Register register )
         {
             return myRegisters[ (int) register ];
         }
 
-        public void SetRegister( Register register, ushort value )
+        public void SetRegister( DCPU16Register register, ushort value )
         {
             if ( !mySkip )
             {
@@ -223,9 +223,9 @@ namespace DCPU16
                 ushort valA;
                 opcode = a;
                 a = b;
-                switch( (Opcode) ( opcode << 0x4 ) )
+                switch( (DCPU16Opcode) ( opcode << 0x4 ) )
                 {
-                    case Opcode.Jsr:
+                    case DCPU16Opcode.Jsr:
                         valA = LoadValue( a, ref cycles );
                         Push( (ushort) myPC );
                         cycles += 2;
@@ -239,23 +239,23 @@ namespace DCPU16
             {
                 ushort valA, valB;
                 long val;
-                switch ( (Opcode) opcode )
+                switch ( (DCPU16Opcode) opcode )
                 {
-                    case Opcode.Set:
+                    case DCPU16Opcode.Set:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         if( !skip )
                             StoreValue( a, valB, ref cycles );
                         cycles += 1;
                         break;
-                    case Opcode.Add:
+                    case DCPU16Opcode.Add:
                         val = LoadValue( a, ref cycles ) + LoadValue( b, ref cycles );
                         Overflow = (ushort) ( val > 0xffff ? 0x0001 : 0x0000 );
                         if ( !skip )
                             StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
                         cycles += 2;
                         break;
-                    case Opcode.Sub:
+                    case DCPU16Opcode.Sub:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         if ( !skip )
@@ -274,7 +274,7 @@ namespace DCPU16
                         }
                         cycles += 2;
                         break;
-                    case Opcode.Mul:
+                    case DCPU16Opcode.Mul:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         if ( !skip )
@@ -285,7 +285,7 @@ namespace DCPU16
                         }
                         cycles += 2;
                         break;
-                    case Opcode.Div:
+                    case DCPU16Opcode.Div:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         if ( !skip )
@@ -304,7 +304,7 @@ namespace DCPU16
                         }
                         cycles += 3;
                         break;
-                    case Opcode.Mod:
+                    case DCPU16Opcode.Mod:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         if ( !skip )
@@ -317,7 +317,7 @@ namespace DCPU16
                         }
                         cycles += 3;
                         break;
-                    case Opcode.ShL:
+                    case DCPU16Opcode.ShL:
                         valA = LoadValue( a, ref cycles );
                         valB = (ushort) ( LoadValue( b, ref cycles ) & 0x1f );
                         if ( !skip )
@@ -328,7 +328,7 @@ namespace DCPU16
                         }
                         cycles += 2;
                         break;
-                    case Opcode.ShR:
+                    case DCPU16Opcode.ShR:
                         valA = LoadValue( a, ref cycles );
                         valB = (ushort) ( LoadValue( b, ref cycles ) & 0x1f );
                         if ( !skip )
@@ -339,46 +339,46 @@ namespace DCPU16
                         }
                         cycles += 2;
                         break;
-                    case Opcode.And:
+                    case DCPU16Opcode.And:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         if ( !skip )
                             StoreValue( a, (ushort) ( valA & valB ), ref cycles );
                         cycles += 1;
                         break;
-                    case Opcode.BOr:
+                    case DCPU16Opcode.BOr:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         if ( !skip )
                             StoreValue( a, (ushort) ( valA | valB ), ref cycles );
                         cycles += 1;
                         break;
-                    case Opcode.XOr:
+                    case DCPU16Opcode.XOr:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         if ( !skip )
                             StoreValue( a, (ushort) ( valA ^ valB ), ref cycles );
                         cycles += 1;
                         break;
-                    case Opcode.IfE:
+                    case DCPU16Opcode.IfE:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         InstructionSkip = valA != valB;
                         cycles += 2;
                         break;
-                    case Opcode.IfN:
+                    case DCPU16Opcode.IfN:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         InstructionSkip = valA == valB;
                         cycles += 2;
                         break;
-                    case Opcode.IfG:
+                    case DCPU16Opcode.IfG:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         InstructionSkip = valA <= valB;
                         cycles += 2;
                         break;
-                    case Opcode.IfB:
+                    case DCPU16Opcode.IfB:
                         valA = LoadValue( a, ref cycles );
                         valB = LoadValue( b, ref cycles );
                         InstructionSkip = ( valA & valB ) == 0;
@@ -412,7 +412,7 @@ namespace DCPU16
 
             if ( identifier < 0x18 )
             {
-                value = GetRegister( (Register) ( identifier & 0x7 ) );
+                value = GetRegister( (DCPU16Register) ( identifier & 0x7 ) );
                 reference = identifier >= 0x8;
 
                 if ( identifier >= 0x10 )
@@ -475,7 +475,7 @@ namespace DCPU16
 
             if ( identifier < 0x18 )
             {
-                Register register = (Register) ( identifier & 0x7 );
+                DCPU16Register register = (DCPU16Register) ( identifier & 0x7 );
 
                 if ( identifier < 0x08 )
                     SetRegister( register, value );

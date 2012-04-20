@@ -122,14 +122,14 @@ namespace DCPU16.Emulator
                         writer.Write( "   O: " + myCPU.Overflow.ToString( "X4" ).ToLower() + nl + nl );
 
                         writer.Write( "// General Registers:" + nl );
-                        writer.Write( "  A: " + myCPU.GetRegister( Register.A ).ToString( "X4" ).ToLower() + nl );
-                        writer.Write( "  B: " + myCPU.GetRegister( Register.B ).ToString( "X4" ).ToLower() + nl );
-                        writer.Write( "  C: " + myCPU.GetRegister( Register.C ).ToString( "X4" ).ToLower() + nl );
-                        writer.Write( "  X: " + myCPU.GetRegister( Register.X ).ToString( "X4" ).ToLower() + nl );
-                        writer.Write( "  Y: " + myCPU.GetRegister( Register.Y ).ToString( "X4" ).ToLower() + nl );
-                        writer.Write( "  Z: " + myCPU.GetRegister( Register.Z ).ToString( "X4" ).ToLower() + nl );
-                        writer.Write( "  I: " + myCPU.GetRegister( Register.I ).ToString( "X4" ).ToLower() + nl );
-                        writer.Write( "  J: " + myCPU.GetRegister( Register.J ).ToString( "X4" ).ToLower() + nl + nl );
+                        writer.Write( "  A: " + myCPU.GetRegister( DCPU16Register.A ).ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  B: " + myCPU.GetRegister( DCPU16Register.B ).ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  C: " + myCPU.GetRegister( DCPU16Register.C ).ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  X: " + myCPU.GetRegister( DCPU16Register.X ).ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  Y: " + myCPU.GetRegister( DCPU16Register.Y ).ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  Z: " + myCPU.GetRegister( DCPU16Register.Z ).ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  I: " + myCPU.GetRegister( DCPU16Register.I ).ToString( "X4" ).ToLower() + nl );
+                        writer.Write( "  J: " + myCPU.GetRegister( DCPU16Register.J ).ToString( "X4" ).ToLower() + nl + nl );
 
                         writer.Write( "// Memory Dump:" + nl );
 

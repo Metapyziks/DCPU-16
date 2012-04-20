@@ -126,7 +126,7 @@ namespace DCPU16
             return Parse( File.ReadAllText( filePath ) ).Assemble( offset );
         }
 
-        private static DASM16Builder Parse( String str )
+        public static DASM16Builder Parse( String str )
         {
             DASM16Builder builder = new DASM16Builder();
 
@@ -202,14 +202,20 @@ namespace DCPU16
             }
             return builder;
         }
+
+        public static DASM16Instruction ParseInstruction( String str )
+        {
+            int temp = 0;
+            return ReadInstruction( str, ref temp );
+        }
         
         private static DASM16Instruction ReadInstruction( String str, ref int offset )
         {
-            Opcode opcode = ReadOpcode( str, ref offset );
+            DCPU16Opcode opcode = ReadOpcode( str, ref offset );
 
-            if ( opcode == Opcode.Dat )
+            if ( opcode == DCPU16Opcode.Dat )
             {
-                List<LiteralVal> vals = new List<LiteralVal>();
+                List<DASM16LiteralVal> vals = new List<DASM16LiteralVal>();
                 do
                 {
                     SkipWhitespace( str, ref offset );
@@ -223,15 +229,15 @@ namespace DCPU16
                                 switch ( str[ offset ] )
                                 {
                                     case 'r':
-                                        vals.Add( new LiteralVal( str, offset, '\r' ) ); break;
+                                        vals.Add( new DASM16LiteralVal( str, offset, '\r' ) ); break;
                                     case '\\':
-                                        vals.Add( new LiteralVal( str, offset, '\\' ) ); break;
+                                        vals.Add( new DASM16LiteralVal( str, offset, '\\' ) ); break;
                                     case 'n':
-                                        vals.Add( new LiteralVal( str, offset, '\n' ) ); break;
+                                        vals.Add( new DASM16LiteralVal( str, offset, '\n' ) ); break;
                                     case 't':
-                                        vals.Add( new LiteralVal( str, offset, '\t' ) ); break;
+                                        vals.Add( new DASM16LiteralVal( str, offset, '\t' ) ); break;
                                     default:
-                                        vals.Add( new LiteralVal( str, offset, '\r' ) ); break;
+                                        vals.Add( new DASM16LiteralVal( str, offset, '\r' ) ); break;
                                 }
                                 escaped = false;
                                 continue;
@@ -242,13 +248,13 @@ namespace DCPU16
                                 continue;
                             }
 
-                            vals.Add( new LiteralVal( str, offset, str[ offset ] ) );
+                            vals.Add( new DASM16LiteralVal( str, offset, str[ offset ] ) );
                         }
 
                         ++offset;
                     }
                     else
-                        vals.Add( (LiteralVal) ReadValue( str, ref offset ) );
+                        vals.Add( (DASM16LiteralVal) ReadValue( str, ref offset ) );
                 }
                 while ( offset < str.Length && str[ offset ] == ',' && ++offset < str.Length );
 
@@ -310,7 +316,7 @@ namespace DCPU16
                 return false;
 
             String sub = str.Substring( offset, 3 );
-            foreach ( Opcode op in Enum.GetValues( typeof( Opcode ) ) )
+            foreach ( DCPU16Opcode op in Enum.GetValues( typeof( DCPU16Opcode ) ) )
             {
                 String name = op.ToString();
                 if ( name.ToUpper() == sub || name.ToLower() == sub )
@@ -334,8 +340,8 @@ namespace DCPU16
             char ch = char.ToUpper( str[ offset++ ] );
             if ( char.IsLetter( ch ) && ( offset >= str.Length || !( char.IsLetterOrDigit( str[ offset ] ) || str[ offset ] == '_' ) ) )
             {
-                Register temp;
-                return Enum.TryParse<Register>( ch.ToString(), out temp );
+                DCPU16Register temp;
+                return Enum.TryParse<DCPU16Register>( ch.ToString(), out temp );
             }
             return false;
         }
@@ -349,8 +355,8 @@ namespace DCPU16
                 sub += char.ToUpper( str[ offset++ ] );
             if ( sub.Length == 0 || sub.Length > 4 )
                 return false;
-            SpecialRegister temp;
-            return Enum.TryParse<SpecialRegister>( sub, out temp );
+            DCPU16SpecialRegister temp;
+            return Enum.TryParse<DCPU16SpecialRegister>( sub, out temp );
         }
 
         private static bool IsNextLabel( String str, int offset )
@@ -439,11 +445,11 @@ namespace DCPU16
             throw new InvalidCommandException( str, startOffset, cmd );
         }
 
-        private static Opcode ReadOpcode( String str, ref int offset )
+        private static DCPU16Opcode ReadOpcode( String str, ref int offset )
         {
             String sub = str.Substring( offset, 3 );
             offset += 3;
-            foreach ( Opcode op in Enum.GetValues( typeof( Opcode ) ) )
+            foreach ( DCPU16Opcode op in Enum.GetValues( typeof( DCPU16Opcode ) ) )
             {
                 String name = op.ToString();
                 if ( name.ToUpper() == sub || name.ToLower() == sub )
@@ -472,14 +478,14 @@ namespace DCPU16
             {
                 if ( reference )
                     throw new AssemblerException( str, startOffset, "Special register used as a reference" );
-                return new SpecialVal( str, startOffset, ReadSpecialRegister( str, ref offset ) );
+                return new DASM16SpecialVal( str, startOffset, ReadSpecialRegister( str, ref offset ) );
             }
             if ( IsNextRegister( str, offset ) )
             {
-                Register reg = ReadRegister( str, ref offset );
+                DCPU16Register reg = ReadRegister( str, ref offset );
 
                 if ( !reference )
-                    return new RegisterVal( str, startOffset, reg, false );
+                    return new DASM16RegisterVal( str, startOffset, reg, false );
 
                 SkipWhitespace( str, ref offset );
 
@@ -509,15 +515,15 @@ namespace DCPU16
                     ++offset;
 
                     if ( label == null )
-                        return new RegisterVal( str, startOffset, reg, literal );
+                        return new DASM16RegisterVal( str, startOffset, reg, literal );
                     else
-                        return new RegisterVal( str, startOffset, reg, label );
+                        return new DASM16RegisterVal( str, startOffset, reg, label );
 
                 }
                 if ( str[ offset ] == ']' )
                 {
                     ++offset;
-                    return new RegisterVal( str, startOffset, reg, true );
+                    return new DASM16RegisterVal( str, startOffset, reg, true );
                 }
 
                 throw new AssemblerException( str, offset, "Expected a ] at the end of a reference value" );
@@ -536,9 +542,9 @@ namespace DCPU16
                 if ( !reference )
                 {
                     if ( isLiteral )
-                        return new LiteralVal( str, startOffset, literal, false );
+                        return new DASM16LiteralVal( str, startOffset, literal, false );
                     else
-                        return new LiteralVal( str, startOffset, label, false );
+                        return new DASM16LiteralVal( str, startOffset, label, false );
                 }
 
                 SkipWhitespace( str, ref offset );
@@ -555,15 +561,15 @@ namespace DCPU16
 
                     if ( IsNextRegister( str, offset ) )
                     {
-                        Register reg = ReadRegister( str, ref offset );
+                        DCPU16Register reg = ReadRegister( str, ref offset );
                         SkipWhitespace( str, ref offset );
                         if ( offset >= str.Length || str[ offset ] != ']' )
                             throw new AssemblerException( str, offset, "Expected a ] at the end of a reference value" );
                         ++offset;
                         if ( isLiteral )
-                            return new RegisterVal( str, startOffset, reg, literal );
+                            return new DASM16RegisterVal( str, startOffset, reg, literal );
                         else
-                            return new RegisterVal( str, startOffset, reg, label );
+                            return new DASM16RegisterVal( str, startOffset, reg, label );
                     }
                     throw new AssemblerException( str, offset, "Unexpected character encountered: " + str[ offset ] );
                 }
@@ -571,9 +577,9 @@ namespace DCPU16
                 {
                     ++offset;
                     if ( isLiteral )
-                        return new LiteralVal( str, startOffset, literal, true );
+                        return new DASM16LiteralVal( str, startOffset, literal, true );
                     else
-                        return new LiteralVal( str, startOffset, label, true );
+                        return new DASM16LiteralVal( str, startOffset, label, true );
                 }
 
                 throw new AssemblerException( str, offset, "Expected a ] at the end of a reference value" );
@@ -684,22 +690,22 @@ namespace DCPU16
             return (ushort) ch;
         }
 
-        private static SpecialRegister ReadSpecialRegister( String str, ref int offset )
+        private static DCPU16SpecialRegister ReadSpecialRegister( String str, ref int offset )
         {
             String sub = "";
             while ( offset < str.Length && char.IsLetter( str[ offset ] ) )
                 sub += char.ToUpper( str[ offset++ ] );
 
-            return (SpecialRegister) Enum.Parse( typeof( SpecialRegister ), sub );
+            return (DCPU16SpecialRegister) Enum.Parse( typeof( DCPU16SpecialRegister ), sub );
         }
 
-        internal static Register ReadRegister( String str, ref int offset )
+        internal static DCPU16Register ReadRegister( String str, ref int offset )
         {
             String sub = "";
             while ( offset < str.Length && char.IsLetter( str[ offset ] ) )
                 sub += char.ToUpper( str[ offset++ ] );
 
-            return (Register) Enum.Parse( typeof( Register ), sub );
+            return (DCPU16Register) Enum.Parse( typeof( DCPU16Register ), sub );
         }
 
         internal static String ReadLabel( String str, ref int offset )

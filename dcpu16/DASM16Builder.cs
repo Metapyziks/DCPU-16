@@ -38,6 +38,26 @@ namespace DCPU16
             Length += ins.Length;
         }
 
+        public void AddInstruction( String str )
+        {
+            AddInstruction( DASM16Assembler.ParseInstruction( str ) );
+        }
+
+        public void AddInstruction( DCPU16Opcode opcode, DASM16Value value )
+        {
+            AddInstruction( new DASM16Instruction( opcode, value ) );
+        }
+
+        public void AddInstruction( DCPU16Opcode opcode, DASM16Value valueA, DASM16Value valueB )
+        {
+            AddInstruction( new DASM16Instruction( opcode, valueA, valueB ) );
+        }
+
+        public void AddData( params DASM16LiteralVal[] values )
+        {
+            AddInstruction( new DASM16Instruction( values ) );
+        }
+
         public void AddLabel( String label, bool local = false )
         {
             Dictionary<String, ushort> dict = ( local ? myLocalLabels : myGlobalLabels );
