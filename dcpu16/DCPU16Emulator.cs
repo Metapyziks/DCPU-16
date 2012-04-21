@@ -319,7 +319,7 @@ namespace DCPU16
                         break;
                     case DCPU16Opcode.ShL:
                         valA = LoadValue( a, ref cycles );
-                        valB = (ushort) ( LoadValue( b, ref cycles ) & 0x1f );
+                        valB = LoadValue( b, ref cycles );
                         if ( !skip )
                         {
                             val = valA << valB;
@@ -330,7 +330,7 @@ namespace DCPU16
                         break;
                     case DCPU16Opcode.ShR:
                         valA = LoadValue( a, ref cycles );
-                        valB = (ushort) ( LoadValue( b, ref cycles ) & 0x1f );
+                        valB = LoadValue( b, ref cycles );
                         if ( !skip )
                         {
                             val = ( valA << 0x10 ) >> valB;

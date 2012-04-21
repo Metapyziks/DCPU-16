@@ -206,6 +206,8 @@ namespace DCPU16
                     } );
                 stTypes.Add( "bool", tbool );
 
+                tu16.AddMethod( "__ctor", new ValType[] { tu16 }, tu16, true, "" );
+                tu16.AddMethod( "__ctor", new ValType[] { tbool }, tu16, true, "" );
                 tu16.AddMethod( "__not", new ValType[] { tu16 }, tu16, true, @"
                     XOR A, 0xffff
                 " );
@@ -282,6 +284,14 @@ namespace DCPU16
                     SET PC, POP
                 " );
 
+                tbool.AddMethod( "__ctor", new ValType[] { tbool }, tbool, true, "" );
+                tbool.AddMethod( "__ctor", new ValType[] { tu16 }, tbool, false, @"
+                    SET B, A
+                    SET A, 0
+                    IFG B, 0
+                        SET A, 1
+                    SET PC, POP
+                " );
                 tbool.AddMethod( "__not", new ValType[] { tbool }, tbool, true, @"
                     XOR A, 1
                 " );
