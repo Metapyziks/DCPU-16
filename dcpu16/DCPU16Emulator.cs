@@ -238,7 +238,7 @@ namespace DCPU16
             else
             {
                 ushort valA, valB;
-                long val;
+                ulong val;
                 switch ( (DCPU16Opcode) opcode )
                 {
                     case DCPU16Opcode.Set:
@@ -249,7 +249,7 @@ namespace DCPU16
                         cycles += 1;
                         break;
                     case DCPU16Opcode.Add:
-                        val = LoadValue( a, ref cycles ) + LoadValue( b, ref cycles );
+                        val = (ulong) LoadValue( a, ref cycles ) + LoadValue( b, ref cycles );
                         Overflow = (ushort) ( val > 0xffff ? 0x0001 : 0x0000 );
                         if ( !skip )
                             StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
@@ -262,12 +262,12 @@ namespace DCPU16
                         {
                             if ( valA >= valB )
                             {
-                                val = valA - valB;
+                                val = (ulong) valA - valB;
                                 Overflow = 0x0000;
                             }
                             else
                             {
-                                val = 0x10000 + ( valA - valB );
+                                val = 0x10000 + ( (ulong) valA - valB );
                                 Overflow = 0xffff;
                             }
                             StoreValue( a, (ushort) val, ref cycles );
@@ -279,7 +279,7 @@ namespace DCPU16
                         valB = LoadValue( b, ref cycles );
                         if ( !skip )
                         {
-                            val = valA * valB;
+                            val = (ulong) valA * valB;
                             Overflow = (ushort) ( ( val >> 0x10 ) & 0xffff );
                             StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
                         }
@@ -297,7 +297,7 @@ namespace DCPU16
                             }
                             else
                             {
-                                val = valA / valB;
+                                val = (ulong) valA / valB;
                                 Overflow = (ushort) ( ( ( valA << 0x10 ) / valB ) & 0xffff );
                             }
                             StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
@@ -312,7 +312,7 @@ namespace DCPU16
                             if ( valB == 0 )
                                 val = 0;
                             else
-                                val = valA % valB;
+                                val = (ulong) valA % valB;
                             StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
                         }
                         cycles += 3;
@@ -322,7 +322,7 @@ namespace DCPU16
                         valB = LoadValue( b, ref cycles );
                         if ( !skip )
                         {
-                            val = valA << valB;
+                            val = (ulong) valA << valB;
                             Overflow = (ushort) ( ( val >> 0x10 ) & 0xffff );
                             StoreValue( a, (ushort) ( val & 0xffff ), ref cycles );
                         }
@@ -333,7 +333,7 @@ namespace DCPU16
                         valB = LoadValue( b, ref cycles );
                         if ( !skip )
                         {
-                            val = ( valA << 0x10 ) >> valB;
+                            val = ( (ulong) valA << 0x10 ) >> valB;
                             Overflow = (ushort) ( val & 0xffff );
                             StoreValue( a, (ushort) ( ( val >> 0x10 ) & 0xffff ), ref cycles );
                         }
