@@ -3,8 +3,9 @@
 
 			SET I, 0
 :start
+			SET [0x8000+I], 0xf0df
 			SET J, [keypointer]
-			ADD J, 0x8400
+			ADD J, 0x9000
 			SET A, [J]
 			IFE A, 0x00
 				SET PC, start
@@ -16,7 +17,7 @@
 			IFE A, 0x8
 				SET PC, backspace
 			
-			IFE A, 0xd
+			IFE A, 0xa
 				SET PC, return
 			
 			IFE A, 0x7f
@@ -25,7 +26,7 @@
 			IFG 0x20, A
 				SET PC, start
 			
-			BOR A, 0x0300
+			BOR A, 0xf000
 			SET [0x8000+I], A
 			ADD I, 1
 			
@@ -37,11 +38,12 @@
 			IFE I, 0
 				SET PC, start
 			
-			SUB I, 1
 			SET [0x8000+I], 0x0000
+			SUB I, 1
 			
 			SET PC, start
 :return
+			SET [0x8000+I], 0x0000
 			DIV I, 0x20
 			MUL I, 0x20
 			ADD I, 0x20

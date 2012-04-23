@@ -36,7 +36,7 @@ namespace DCPU16.Emulator
 
         public VirtualDisplay( DCPU16Emulator cpu, int rows = 12, int cols = 32, int scale = 2,
             ushort vidBufferLoc = 0x8000, ushort charSetLoc = 0x8180, ushort keyBufferLoc = 0x9000 )
-            : base( ( cols + 2 ) * 4 * scale, ( rows + 1 ) * 8 * scale,
+            : base( ( cols + 4 ) * 4 * scale, ( rows + 2 ) * 8 * scale,
                 new GraphicsMode( new ColorFormat( 8, 8, 8, 0 ), 0 ),
                 "DCPU16 Virtual Display" )
         {
@@ -82,8 +82,8 @@ namespace DCPU16.Emulator
             for ( int i = 0; i < VideoBufferLength; ++i )
             {
                 myCharMap[ i ] = new Character( Scale );
-                myCharMap[ i ].Position = new Vector2( ( i % Columns + 1 ) * 4 * Scale,
-                    ( i / Columns + 0.5f ) * 8 * Scale );
+                myCharMap[ i ].Position = new Vector2( ( i % Columns + 2 ) * 4 * Scale,
+                    ( i / Columns + 1 ) * 8 * Scale );
                 myCharMap[ i ].Value = 0x0000;
             }
 

@@ -1,10 +1,14 @@
 using OpenTK.Graphics.OpenGL;
+using System;
 
 namespace DCPU16.Emulator
 {
     public class CharacterShader : ShaderProgram2D
     {
+        private DateTime myCreateTime;
         private Texture2D myTexture;
+        private int myBlinkPhase;
+        private int myBlinkPhaseLoc;
 
         public Texture2D Texture
         {
@@ -25,6 +29,7 @@ namespace DCPU16.Emulator
         public CharacterShader( Texture2D texture )
         {
             ShaderBuilder vert = new ShaderBuilder( ShaderType.VertexShader, true );
+            vert.AddUniform( ShaderVarType.Int, "blink_phase" );
             vert.AddAttribute( ShaderVarType.Vec2, "in_position" );
             vert.AddAttribute( ShaderVarType.Vec2, "in_value" );
             vert.AddVarying( ShaderVarType.Vec2, "var_texture" );
@@ -41,12 +46,17 @@ namespace DCPU16.Emulator
                     int fore = ( int( in_value ) >> 12 ) & 0xf;
                     int back = ( int( in_value ) >> 8 ) & 0xf;
 
-                    var_fore_colour = vec3( ( fore >> 2 ) & 1, ( fore >> 1 ) & 1, fore & 1 ) * 2.0 / 3.0;
-                    if( ( fore & 0x8 ) != 0 )
-                        var_fore_colour += vec3( 1.0, 1.0, 1.0 ) / 3.0;
                     var_back_colour = vec3( ( back >> 2 ) & 1, ( back >> 1 ) & 1, back & 1 ) * 2.0 / 3.0;
                     if( ( back & 0x8 ) != 0 )
                         var_back_colour += vec3( 1.0, 1.0, 1.0 ) / 3.0;
+                    if( blink_phase == 1 || ( int( in_value.x ) & 0x80 ) == 0 )
+                    {
+                        var_fore_colour = vec3( ( fore >> 2 ) & 1, ( fore >> 1 ) & 1, fore & 1 ) * 2.0 / 3.0;
+                        if( ( fore & 0x8 ) != 0 )
+                            var_fore_colour += vec3( 1.0, 1.0, 1.0 ) / 3.0;
+                    }
+                    else
+                        var_fore_colour = var_back_colour;
                 }
             ";
 
@@ -89,12 +99,27 @@ namespace DCPU16.Emulator
 
             AddTexture( "texture0", TextureUnit.Texture0 );
             SetTexture( "texture0", myTexture );
+
+            myBlinkPhaseLoc = GL.GetUniformLocation( Program, "blink_phase" );
+
+            myCreateTime = DateTime.Now;
+            myBlinkPhase = 0;
+
+            GL.Uniform1( myBlinkPhaseLoc, myBlinkPhase );
         }
 
         protected override void OnStartBatch()
         {
             lock ( myTexture )
                 myTexture.Bind();
+
+            DateTime now = DateTime.Now;
+            int blinkPhase = ( (int) ( now - myCreateTime ).TotalMilliseconds / 500 ) % 2;
+            if ( blinkPhase != myBlinkPhase )
+            {
+                myBlinkPhase = blinkPhase;
+                GL.Uniform1( myBlinkPhaseLoc, myBlinkPhase );
+            }
         }
     }
 }
