@@ -324,7 +324,7 @@ namespace DCPU16.Emulator
         private static int stKeyboardLoc = 0x9000;
         private static int stCycleFreq = 100000;
         private static String stCodePath;
-        private static DCPU16Emulator myCPU;
+        private static V11.DCPU16Emulator myCPU;
         private static bool stMemDump =
 #if DEBUG
             true;
@@ -346,7 +346,7 @@ namespace DCPU16.Emulator
                 return;
             }
 
-            myCPU = new DCPU16Emulator();
+            myCPU = new V11.DCPU16Emulator();
 
             if ( stCodePath == null )
                 myCPU.LoadProgram( stDefaultProgram );

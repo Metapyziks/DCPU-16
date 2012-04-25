@@ -40,15 +40,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DASM16Builder.cs" />
-    <Compile Include="DASM16CommandInfo.cs" />
-    <Compile Include="DASM16Assembler.cs" />
-    <Compile Include="DASM16Assembly.cs" />
-    <Compile Include="ShuttleCompiler.cs" />
-    <Compile Include="DCPU16Emulator.cs" />
-    <Compile Include="DASM16Instruction.cs" />
-    <Compile Include="DASM16Value.cs" />
+    <Compile Include="V11\DASM16Builder.cs" />
+    <Compile Include="V11\DASM16CommandInfo.cs" />
+    <Compile Include="V11\DASM16Assembler.cs" />
+    <Compile Include="V11\DASM16Assembly.cs" />
+    <Compile Include="V11\ShuttleCompiler.cs" />
+    <Compile Include="V11\DCPU16Emulator.cs" />
+    <Compile Include="V11\DASM16Instruction.cs" />
+    <Compile Include="V11\DASM16Value.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="V13\DCPU16Emulator.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

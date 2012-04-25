@@ -21,7 +21,7 @@ namespace DCPU16.Emulator
         private int myKeyIndex;
         private Queue<ushort> myKeyQueue;
 
-        public readonly DCPU16Emulator CPU;
+        public readonly V11.DCPU16Emulator CPU;
 
         public readonly int Rows;
         public readonly int Columns;
@@ -34,7 +34,7 @@ namespace DCPU16.Emulator
 
         public bool Ready { get; private set; }
 
-        public VirtualDisplay( DCPU16Emulator cpu, int rows = 12, int cols = 32, int scale = 2,
+        public VirtualDisplay( V11.DCPU16Emulator cpu, int rows = 12, int cols = 32, int scale = 2,
             ushort vidBufferLoc = 0x8000, ushort charSetLoc = 0x8180, ushort keyBufferLoc = 0x9000 )
             : base( ( cols + 4 ) * 4 * scale, ( rows + 2 ) * 8 * scale,
                 new GraphicsMode( new ColorFormat( 8, 8, 8, 0 ), 0 ),
@@ -87,7 +87,7 @@ namespace DCPU16.Emulator
                 myCharMap[ i ].Value = 0x0000;
             }
 
-            CPU.MemoryChanged += delegate( object sender, MemoryChangedEventArgs me )
+            CPU.MemoryChanged += delegate( object sender, V11.MemoryChangedEventArgs me )
             {
                 if ( me.Location >= VideoBufferLoc && me.Location < VideoBufferLoc + VideoBufferLength )
                 {

@@ -7,7 +7,7 @@
 				SET PC, end				; Goto the end
 			
             SET A, [data+I]				; Load the next character
-			BOR A, 0x0300				; Set the colour to white
+			BOR A, 0xf000				; Set the colour to white
             SET [0x8000+I], A			; Set the value in video memory
             ADD I, 1					; Increment the loop
             SET PC, nextchar			; Loop back to do the next character

@@ -892,13 +892,13 @@ SET B, [select_y]
 JSR get_selection
 
 SET [old_select_tile1], [A]
-SHL [A], 8 ;remove highest 2 bits
-SHR [A], 8
+SHL [A], 4 ;remove highest 2 bits
+SHR [A], 4
 BOR [A], 0x2A00
 ADD A, 1 ;and the other side
 SET [old_select_tile2], [A]
-SHL [A], 8 ;remove highest 2 bits
-SHR [A], 8
+SHL [A], 4 ;remove highest 2 bits
+SHR [A], 4
 BOR [A], 0x2A00
 
 SET [old_select_x], [select_x]
