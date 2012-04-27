@@ -10,32 +10,51 @@ using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Input;
 
+using DCPU16.V15;
+
 namespace DCPU16.Emulator
 {
-    class VirtualDisplay : GameWindow
+    class LEM1802 : GameWindow, IHardware
     {
+        private ushort[] myDefaultCharSet;
+
         private Texture2D myCharacterSet;
         private CharacterShader myCharShader;
         private Character[] myCharMap;
 
+        private bool myDumping;
+
         private int myKeyIndex;
         private Queue<ushort> myKeyQueue;
 
-        public readonly V11.DCPU16Emulator CPU;
+        public DCPU16Emulator CPU { get; private set; }
 
         public readonly int Rows;
         public readonly int Columns;
         public readonly int Scale;
 
-        public readonly ushort VideoBufferLoc;
-        public readonly ushort VideoBufferLength;
-        public readonly ushort CharacterSetLoc;
-        public readonly ushort KeyBufferLoc;
+        public ushort VideoBufferLoc { get; private set; }
+        public ushort VideoBufferLength { get; private set; }
+        public ushort CharacterSetLoc { get; private set; }
+        
+        public uint HardwareID
+        {
+            get { return 0x7349f615; }
+        }
+
+        public ushort HardwareVersion
+        {
+            get { return 0x1802; }
+        }
+
+        public uint Manufacturer
+        {
+            get { return 0x1c6c8b36; }
+        }
 
         public bool Ready { get; private set; }
 
-        public VirtualDisplay( V11.DCPU16Emulator cpu, int rows = 12, int cols = 32, int scale = 2,
-            ushort vidBufferLoc = 0x8000, ushort charSetLoc = 0x8180, ushort keyBufferLoc = 0x9000 )
+        public LEM1802( DCPU16Emulator cpu, int rows = 12, int cols = 32, int scale = 2 )
             : base( ( cols + 4 ) * 4 * scale, ( rows + 2 ) * 8 * scale,
                 new GraphicsMode( new ColorFormat( 8, 8, 8, 0 ), 0 ),
                 "DCPU16 Virtual Display" )
@@ -46,13 +65,41 @@ namespace DCPU16.Emulator
             Columns = cols;
             Scale = scale;
 
-            VideoBufferLoc = vidBufferLoc;
+            VideoBufferLoc = 0;
             VideoBufferLength = (ushort) ( Rows * Columns );
-            CharacterSetLoc = charSetLoc;
-            KeyBufferLoc = keyBufferLoc;
+            CharacterSetLoc = 0;
 
             myKeyIndex = 0;
             myKeyQueue = new Queue<ushort>();
+
+            myDumping = false;
+        }
+
+        public int Interrupt( DCPU16Emulator cpu )
+        {
+            switch ( cpu.A )
+            {
+                case 0: // MEM_MAP_SCREEN
+                    VideoBufferLoc = cpu.B;
+                    return 0;
+                case 1: // MEM_MAP_FONT
+                    CharacterSetLoc = cpu.B;
+                    return 0;
+                case 2: // MEM_MAP_PALETTE
+                    throw new NotImplementedException();
+                case 3: // SET_BORDER_COLOR
+                    throw new NotImplementedException();
+                case 4: // MEM_DUMP_FONT
+                    myDumping = true;
+                    for ( int i = 0; i < 256; ++i )
+                        cpu.SetMemory( cpu.B + i, myDefaultCharSet[ i ] );
+                    myDumping = false;
+                    return 256;
+                case 5: // MEM_DUMP_PALETTE
+                    throw new NotImplementedException();
+            }
+
+            return 0;
         }
 
         protected override void OnLoad( EventArgs e )
@@ -61,6 +108,7 @@ namespace DCPU16.Emulator
             if ( exePath.StartsWith( "file:\\" ) )
                 exePath = exePath.Substring( 6 );
             myCharacterSet = new Texture2D( new Bitmap( exePath + Path.DirectorySeparatorChar + "charset.png" ) );
+            myDefaultCharSet = new ushort[ 256 ];
             for ( int i = 0; i < 127; ++i )
             {
                 for ( int w = 0; w < 2; ++w )
@@ -73,7 +121,7 @@ namespace DCPU16.Emulator
                         if ( myCharacterSet.GetPixel( x, y ).R >= 128 )
                             word |= (ushort) ( 1 << ( 15 - j ) );
                     }
-                    CPU.SetMemory( CharacterSetLoc + ( i << 2 ) + w, word );
+                    myDefaultCharSet[ ( i << 1 ) + w ] = word;
                 }
             }
 
@@ -87,14 +135,17 @@ namespace DCPU16.Emulator
                 myCharMap[ i ].Value = 0x0000;
             }
 
-            CPU.MemoryChanged += delegate( object sender, V11.MemoryChangedEventArgs me )
+            CPU.MemoryChanged += delegate( object sender, MemoryChangedEventArgs me )
             {
-                if ( me.Location >= VideoBufferLoc && me.Location < VideoBufferLoc + VideoBufferLength )
+                if ( myDumping )
+                    return;
+
+                if ( VideoBufferLoc != 0 && me.Location >= VideoBufferLoc && me.Location < VideoBufferLoc + VideoBufferLength )
                 {
                     int index = me.Location - VideoBufferLoc;
                     myCharMap[ index ].Value = me.Value;
                 }
-                else if ( me.Location >= CharacterSetLoc && me.Location < CharacterSetLoc + 256 )
+                else if ( CharacterSetLoc != 0 && me.Location >= CharacterSetLoc && me.Location < CharacterSetLoc + 256 )
                 {
                     int index = me.Location - CharacterSetLoc;
                     int x = ( index % 32 ) * 2;
@@ -108,71 +159,9 @@ namespace DCPU16.Emulator
                             myCharacterSet.SetPixel( x + 1 - i / 8, y + i % 8, Color.Black );
                     }
                 }
-                else if ( me.Location >= KeyBufferLoc && me.Location < KeyBufferLoc + 0x10 )
-                {
-                    if ( me.Value == 0x0000 && myKeyQueue.Count > 0 )
-                        WriteKey( myKeyQueue.Dequeue() );
-                }
-            };
-
-            Keyboard.KeyRepeat = true;
-            Keyboard.KeyDown += delegate( object sender, KeyboardKeyEventArgs ke )
-            {
-                ushort key = KeyToUShort( ke.Key );
-
-                if ( key == 0xffff )
-                    return;
-
-                if ( CPU.GetMemory( KeyBufferLoc + myKeyIndex ) == 0x0000 )
-                    WriteKey( key );
-                else
-                    myKeyQueue.Enqueue( key );
             };
 
             Ready = true;
-        }
-
-        protected override void OnKeyPress( KeyPressEventArgs e )
-        {
-            ushort key = KeyCharToUShort( e.KeyChar );
-
-            if ( key == 0xffff )
-                return;
-
-            if ( CPU.GetMemory( KeyBufferLoc + myKeyIndex ) == 0x0000 )
-                WriteKey( key );
-            else
-                myKeyQueue.Enqueue( key );
-        }
-
-        private ushort KeyToUShort( Key key )
-        {
-            switch( key )
-            {
-                case Key.Left:
-                    return 0x25;
-                case Key.Up:
-                    return 0x26;
-                case Key.Right:
-                    return 0x27;
-                case Key.Down:
-                    return 0x28;
-                default:
-                    return 0xffff;
-            }
-        }
-
-        private ushort KeyCharToUShort( ushort keyChar )
-        {
-            ushort key = (ushort) keyChar;
-
-            if ( key == 0x0d )
-                return 0x0a;
-            
-            if( key < 0x80 )
-                return key;
-
-            return 0xffff;
         }
 
         protected override void OnRenderFrame( FrameEventArgs e )
@@ -183,13 +172,6 @@ namespace DCPU16.Emulator
             myCharShader.End();
 
             SwapBuffers();
-        }
-
-        private void WriteKey( ushort key )
-        {
-            CPU.SetMemory( KeyBufferLoc + myKeyIndex, key );
-            CPU.SetMemory( KeyBufferLoc + 0x10, (ushort) ( KeyBufferLoc + myKeyIndex ) );
-            myKeyIndex = ( myKeyIndex + 1 ) & 0xf;
         }
     }
 }

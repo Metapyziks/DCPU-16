@@ -14,7 +14,7 @@ namespace DCPU16.V11
 
     public enum DCPU16SpecialRegister : byte
     {
-        POP = 0x18, PEEK = 0x19, POP  = 0x1a,
+        POP = 0x18, PEEK = 0x19, PUSH = 0x1a,
         SP  = 0x1b, PC   = 0x1c, O    = 0x1d
     }
 
@@ -131,11 +131,14 @@ namespace DCPU16.V11
 
         public void SetMemory( int location, ushort value )
         {
-            location &= 0xffff;
-            myMemory[ location ] = value;
+            if ( !mySkip )
+            {
+                location &= 0xffff;
+                myMemory[ location ] = value;
 
-            if ( MemoryChanged != null )
-                MemoryChanged( this, new MemoryChangedEventArgs( location, value ) );
+                if ( MemoryChanged != null )
+                    MemoryChanged( this, new MemoryChangedEventArgs( location, value ) );
+            }
         }
 
         public ushort Pop()

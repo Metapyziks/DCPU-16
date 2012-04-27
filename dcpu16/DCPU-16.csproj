@@ -49,7 +49,8 @@
     <Compile Include="V11\DASM16Instruction.cs" />
     <Compile Include="V11\DASM16Value.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="V13\DCPU16Emulator.cs" />
+    <Compile Include="V15\DCPU16Emulator.cs" />
+    <Compile Include="V15\IHardware.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
